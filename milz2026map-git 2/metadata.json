@@ -1,0 +1,5 @@
+{
+  "name": "milz",
+  "description": "A mobile-friendly map application to register and manage your favorite restaurants and shops with direct website links. Powered by milztech.",
+  "requestFramePermissions": ["geolocation"]
+}
