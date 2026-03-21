@@ -216,7 +216,7 @@ function normalizeRecommendationCards(results: AIResults | null, location: strin
       reason_en: rec.reason_en || rec.reason_ja || 'A practical recommendation for this area.',
     }));
 
-  if (mapped.length >= 5) return mapped.slice(0, 5);
+  if (mapped.length >= 10) return mapped.slice(0, 10);
 
   const fallback = curatedRecommendationFallback(location);
   const seen = new Set(mapped.map((rec) => (rec.name_en || rec.name_ja).toLowerCase()));
@@ -225,9 +225,9 @@ function normalizeRecommendationCards(results: AIResults | null, location: strin
     if (seen.has(key)) continue;
     mapped.push(rec);
     seen.add(key);
-    if (mapped.length >= 5) break;
+    if (mapped.length >= 10) break;
   }
-  return mapped.slice(0, 5);
+  return mapped.slice(0, 10);
 }
 
 // Custom Map Events Component
@@ -462,6 +462,7 @@ export default function App() {
   const [isAdding, setIsAdding] = useState(false);
   const [newPlacePos, setNewPlacePos] = useState<{ lat: number; lng: number } | null>(null);
   const [editingPlace, setEditingPlace] = useState<Place | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<Place | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [mapBounds, setMapBounds] = useState<L.LatLngBounds | null>(null);
   const [isFiltering, setIsFiltering] = useState(false);
@@ -511,6 +512,7 @@ export default function App() {
     }));
     setAiResults(null);
     setAiError('');
+    setSelectedPlace(null);
   }, [activeRegion]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
@@ -528,6 +530,14 @@ export default function App() {
   const showToast = React.useCallback((message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
+  }, []);
+
+  const openPlaceDetail = React.useCallback((place: Place) => {
+    setSelectedPlace(place);
+  }, []);
+
+  const closePlaceDetail = React.useCallback(() => {
+    setSelectedPlace(null);
   }, []);
 
   // Add to debug logs
@@ -1115,6 +1125,7 @@ export default function App() {
             .eq('id', placeId);
 
           if (error) throw error;
+          if (selectedPlace?.id === placeId) setSelectedPlace(null);
           showToast("スポットを削除しました。", "success");
           fetchPlaces();
         } catch (error: any) {
@@ -1422,6 +1433,10 @@ export default function App() {
   const favoritePlaces = places.filter(p => favorites.some(f => f.place_id === p.id));
 
   const recommendationCards = normalizeRecommendationCards(aiResults, buildScopedLocationString(activeRegion, locationFilter) || `${activeRegion.country} ${activeRegion.prefecture} ${activeRegion.municipality}`);
+  const selectedPlaceIsFavorite = selectedPlace ? favorites.some((favorite) => favorite.place_id === selectedPlace.id) : false;
+  const selectedPlaceScopedLocation = selectedPlace
+    ? [selectedPlace.address, selectedPlace.municipality, selectedPlace.prefecture, selectedPlace.country].filter(Boolean).join(', ')
+    : '';
 
   if (isConfigMissing) {
     return (
@@ -1844,24 +1859,33 @@ export default function App() {
                             </a>
                           )}
                         </div>
-                        {role === 'admin' && (
-                          <div className="flex gap-2 pt-2 border-t border-stone-50">
-                            <button 
-                              onClick={() => handleEditPlace(place)}
-                              className="flex-1 py-2 bg-stone-900 text-white text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
-                            >
-                              <Pencil className="w-3 h-3" />
-                              Edit
-                            </button>
-                            <button 
-                              onClick={() => handleDeletePlace(place.id)}
-                              className="flex-1 py-2 bg-rose-50 text-rose-500 text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                              Delete
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex gap-2 pt-2 border-t border-stone-50">
+                          <button 
+                            onClick={() => openPlaceDetail(place)}
+                            className="flex-1 py-2 bg-[#fff4f1] text-[#b51c00] text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
+                          >
+                            <Info className="w-3 h-3" />
+                            Details
+                          </button>
+                          {role === 'admin' && (
+                            <>
+                              <button 
+                                onClick={() => handleEditPlace(place)}
+                                className="flex-1 py-2 bg-stone-900 text-white text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
+                              >
+                                <Pencil className="w-3 h-3" />
+                                Edit
+                              </button>
+                              <button 
+                                onClick={() => handleDeletePlace(place.id)}
+                                className="flex-1 py-2 bg-rose-50 text-rose-500 text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                                Delete
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </Popup>
                   </Marker>
@@ -1897,7 +1921,7 @@ export default function App() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="h-full overflow-y-auto p-6 space-y-6 bg-stone-50"
+              className="h-full overflow-y-auto bg-stone-50 p-6 pb-32 space-y-6"
             >
               <div className="relative">
                 <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400" />
@@ -1931,12 +1955,13 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 gap-4">
+              <div className="grid grid-cols-1 gap-4 pb-28">
                 {(listFilter === 'all' ? filteredPlaces : favoritePlaces).map((place) => (
                   <motion.div 
                     layout
                     key={place.id}
-                    className="bg-white p-4 rounded-3xl shadow-sm border border-stone-100 group"
+                    className="bg-white p-4 rounded-3xl shadow-sm border border-stone-100 group cursor-pointer transition-transform hover:-translate-y-0.5"
+                    onClick={() => openPlaceDetail(place)}
                   >
                     <div className="flex gap-4">
                       <div className={cn(
@@ -1955,7 +1980,7 @@ export default function App() {
                         <div className="flex items-start justify-between">
                           <h3 className="font-black text-stone-900 truncate">{place.name}</h3>
                           <button 
-                            onClick={() => handleToggleFavorite(place.id)}
+                            onClick={(e) => { e.stopPropagation(); handleToggleFavorite(place.id); }}
                             className={cn(
                               "p-2 rounded-xl transition-all",
                               favorites.some(f => f.place_id === place.id) ? "bg-red-50 text-red-500" : "hover:bg-stone-50 text-stone-300"
@@ -1965,9 +1990,20 @@ export default function App() {
                           </button>
                         </div>
                         <p className="text-xs text-stone-500 line-clamp-2 mt-1">{place.description}</p>
-                        <div className="flex items-center gap-3 mt-4">
+                        <div className="flex flex-wrap items-center gap-3 mt-4">
                           <button 
-                            onClick={() => {
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openPlaceDetail(place);
+                            }}
+                            className="flex items-center gap-1 text-[10px] font-black text-[#b51c00] hover:opacity-80 transition-colors"
+                          >
+                            <Info className="w-3 h-3" />
+                            DETAILS
+                          </button>
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setActiveTab('map');
                               setTimeout(() => mapRef.current?.flyTo([place.lat, place.lng], 16), 100);
                             }}
@@ -1980,6 +2016,7 @@ export default function App() {
                             <a 
                               href={place.website_url} 
                               target="_blank" 
+                              onClick={(e) => e.stopPropagation()}
                               className="flex items-center gap-1 text-[10px] font-black text-stone-400 hover:text-stone-900 transition-colors"
                             >
                               <ExternalLink className="w-3 h-3" />
@@ -2413,48 +2450,174 @@ export default function App() {
       </main>
 
       {/* Navigation */}
-      <nav className="bg-white border-t border-stone-100 px-6 py-4 flex items-center justify-between z-[1001]">
-        <button 
+      <nav className="fixed bottom-0 left-0 right-0 z-[1002] mx-auto flex max-w-screen-sm items-end justify-around rounded-t-[32px] bg-white/92 px-4 pb-6 pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.06)] backdrop-blur-xl md:left-6 md:right-6 md:bottom-4 md:max-w-4xl">
+        <button
           onClick={() => setActiveTab('map')}
-          className={cn(
-            "flex flex-col items-center gap-1 transition-all",
-            activeTab === 'map' ? "text-stone-900" : "text-stone-300"
-          )}
+          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'map' ? 'text-[#b51c00]' : 'text-zinc-400 hover:text-[#b51c00]')}
         >
-          <MapIcon className="w-6 h-6" />
-          <span className="text-[10px] font-black uppercase tracking-tighter">Map</span>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'map' ? 'bg-[#fff4f1] text-[#b51c00]' : 'bg-transparent')}>
+            <MapIcon className="h-5 w-5" />
+          </span>
+          <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">MAP</span>
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('list')}
-          className={cn(
-            "flex flex-col items-center gap-1 transition-all",
-            activeTab === 'list' ? "text-stone-900" : "text-stone-300"
-          )}
+          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'list' ? 'text-[#b51c00]' : 'text-zinc-400 hover:text-[#b51c00]')}
         >
-          <ListIcon className="w-6 h-6" />
-          <span className="text-[10px] font-black uppercase tracking-tighter">List</span>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'list' ? 'bg-[#fff4f1] text-[#b51c00]' : 'bg-transparent')}>
+            <ListIcon className="h-5 w-5" />
+          </span>
+          <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">LIST</span>
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('ai')}
-          className={cn(
-            "flex flex-col items-center gap-1 transition-all",
-            activeTab === 'ai' ? "text-stone-900" : "text-stone-300"
-          )}
+          className="relative -top-2 flex flex-col items-center justify-center text-[#b51c00]"
         >
-          <Sparkles className="w-6 h-6" />
-          <span className="text-[10px] font-black uppercase tracking-tighter">AI</span>
+          <div className={cn('mb-1 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-[#b51c00]/30 transition-all', activeTab === 'ai' ? 'bg-[#b51c00] text-white' : 'bg-[#fff4f1] text-[#b51c00] border border-[#f3c4ba]')}>
+            <Sparkles className="h-6 w-6" />
+          </div>
+          <span className="font-['Inter'] text-[10px] font-bold uppercase tracking-widest">AI</span>
         </button>
-        <button 
+        <button
           onClick={() => setActiveTab('profile')}
-          className={cn(
-            "flex flex-col items-center gap-1 transition-all",
-            activeTab === 'profile' ? "text-stone-900" : "text-stone-300"
-          )}
+          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'profile' ? 'text-[#b51c00]' : 'text-zinc-400 hover:text-[#b51c00]')}
         >
-          <UserIcon className="w-6 h-6" />
-          <span className="text-[10px] font-black uppercase tracking-tighter">Me</span>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'profile' ? 'bg-[#fff4f1] text-[#b51c00]' : 'bg-transparent')}>
+            <UserIcon className="h-5 w-5" />
+          </span>
+          <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">ME</span>
         </button>
       </nav>
+
+      <AnimatePresence>
+        {selectedPlace && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[2050] bg-[#f8f9fa]"
+          >
+            <div className="h-full overflow-y-auto pb-40">
+              <header className="sticky top-0 z-20 flex items-center justify-between bg-white/88 px-5 py-4 backdrop-blur-xl border-b border-[#eceef0]">
+                <button onClick={closePlaceDetail} className="text-[#b51c00]">
+                  <ChevronRight className="h-5 w-5 rotate-180" />
+                </button>
+                <div className="text-sm font-black tracking-tight text-[#b51c00]">MILZ</div>
+                <button
+                  onClick={() => selectedPlace && handleToggleFavorite(selectedPlace.id)}
+                  className={cn('flex h-9 w-9 items-center justify-center rounded-full border transition-colors', selectedPlaceIsFavorite ? 'border-[#c7efe9] bg-[#e9fbf7] text-[#006a62]' : 'border-[#f0c5bc] bg-white text-[#b51c00]')}
+                >
+                  <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite && 'fill-current')} />
+                </button>
+              </header>
+
+              <section className="relative h-[38vh] min-h-[19rem] overflow-hidden bg-[linear-gradient(135deg,#2f3335,#191c1d)]">
+                {selectedPlace.image_url ? (
+                  <img src={selectedPlace.image_url} alt={selectedPlace.name} className="h-full w-full object-cover" />
+                ) : (
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.16),transparent_28%),linear-gradient(135deg,#cfa77d,#4f3528)]" />
+                )}
+                <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(25,28,29,0.06),rgba(25,28,29,0.72)_68%,rgba(25,28,29,0.9))]" />
+                <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-[#84f5e8] px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-[#00201d]">Admin Spot</span>
+                    <span className="rounded-full bg-white/14 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white/92">{selectedPlace.category}</span>
+                  </div>
+                  <h2 className="mt-4 font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em] text-white">{selectedPlace.name}</h2>
+                  <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-white/82">
+                    {selectedPlaceScopedLocation && <span>{selectedPlaceScopedLocation}</span>}
+                    <span className="inline-flex items-center gap-1"><MapPin className="h-4 w-4" /> {selectedPlace.lat.toFixed(4)}, {selectedPlace.lng.toFixed(4)}</span>
+                  </div>
+                  <div className="mt-5 flex gap-3">
+                    <button
+                      onClick={() => { setActiveTab('map'); closePlaceDetail(); setTimeout(() => mapRef.current?.flyTo([selectedPlace.lat, selectedPlace.lng], 16), 140); }}
+                      className="inline-flex min-w-[11rem] items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#b51c00,#d9371a)] px-6 py-3 text-sm font-black text-white shadow-[0_18px_34px_rgba(181,28,0,0.18)]"
+                    >
+                      <Navigation className="h-4 w-4" />
+                      View on Map
+                    </button>
+                    {selectedPlace.website_url && (
+                      <a href={selectedPlace.website_url} target="_blank" rel="noreferrer" className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/12 text-white backdrop-blur-xl">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </section>
+
+              <div className="space-y-8 px-5 py-6">
+                <section className="rounded-[1.75rem] bg-[#f3f4f5] p-6">
+                  <h3 className="font-['Plus_Jakarta_Sans'] text-[2rem] font-extrabold leading-tight tracking-[-0.04em] text-[#191c1d]">About the MILZ Discovery</h3>
+                  <p className="mt-4 text-[15px] leading-8 text-[#5f6368]">
+                    {selectedPlace.description || 'This MILZ spot was registered by the admin team as a saved destination worth checking in this region. Open the map to view its exact location or use the website link for the latest official information.'}
+                  </p>
+                  <div className="mt-6 grid gap-4 sm:grid-cols-2">
+                    <div className="rounded-[1.4rem] bg-white px-5 py-4">
+                      <div className="flex items-start gap-3">
+                        <MapPin className="mt-0.5 h-5 w-5 text-[#006a62]" />
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#191c1d]">Address</p>
+                          <p className="mt-2 text-sm leading-6 text-[#5f6368]">{selectedPlace.address || selectedPlaceScopedLocation || 'Pinned directly on the map by the MILZ admin team.'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-[1.4rem] bg-white px-5 py-4">
+                      <div className="flex items-start gap-3">
+                        <Globe className="mt-0.5 h-5 w-5 text-[#006a62]" />
+                        <div>
+                          <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#191c1d]">Official Link</p>
+                          <p className="mt-2 text-sm leading-6 text-[#5f6368] break-all">{selectedPlace.website_url || 'No official website was registered for this spot.'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                <section>
+                  <div className="mb-5 flex items-end justify-between">
+                    <h3 className="font-['Plus_Jakarta_Sans'] text-[2rem] font-extrabold leading-tight tracking-[-0.04em] text-[#191c1d]">Spot Details</h3>
+                    <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b51c00]">MILZ Editorial</span>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="overflow-hidden rounded-[1.25rem] bg-[#191c1d] p-5 text-white">
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-white/60">Category</p>
+                      <p className="mt-3 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em]">{selectedPlace.category}</p>
+                    </div>
+                    <div className="overflow-hidden rounded-[1.25rem] bg-[#f0faf8] p-5 text-[#00201d]">
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#006a62]">Saved Status</p>
+                      <p className="mt-3 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em]">{selectedPlaceIsFavorite ? 'Saved' : 'Not Saved'}</p>
+                    </div>
+                    <div className="rounded-[1.25rem] bg-white p-5">
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#7c7f82]">Coordinates</p>
+                      <p className="mt-3 text-sm font-semibold text-[#191c1d]">Lat {selectedPlace.lat.toFixed(5)} / Lng {selectedPlace.lng.toFixed(5)}</p>
+                    </div>
+                    <div className="rounded-[1.25rem] bg-white p-5">
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#7c7f82]">Registered</p>
+                      <p className="mt-3 text-sm font-semibold text-[#191c1d]">{new Date(selectedPlace.created_at).toLocaleDateString(uiLanguage === 'ja' ? 'ja-JP' : 'en-US')}</p>
+                    </div>
+                  </div>
+                </section>
+
+                <section className="rounded-[1.75rem] bg-[#eaf7f4] p-6 relative overflow-hidden">
+                  <div className="relative z-10">
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#006a62]">Save for Later</p>
+                    <h4 className="mt-3 font-['Plus_Jakarta_Sans'] text-3xl font-extrabold tracking-[-0.04em] text-[#00201d]">Keep this spot in your MILZ list</h4>
+                    <p className="mt-3 max-w-xl text-sm leading-7 text-[#33544f]">Save the admin-curated spot to revisit it later or jump back to the map when you are building a route.</p>
+                    <button
+                      onClick={() => selectedPlace && handleToggleFavorite(selectedPlace.id)}
+                      className="mt-6 inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-[#006a62]"
+                    >
+                      <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite && 'fill-current')} />
+                      {selectedPlaceIsFavorite ? 'Saved to Favorites' : 'Add to Favorites'}
+                    </button>
+                  </div>
+                  <Heart className="absolute -bottom-4 -right-4 h-28 w-28 text-[#cceee7]" />
+                </section>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Add Spot Modal */}
       <AnimatePresence>
