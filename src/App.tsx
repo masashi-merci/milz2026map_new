@@ -1861,8 +1861,20 @@ export default function App() {
                         </div>
                         <div className="flex gap-2 pt-2 border-t border-stone-50">
                           <button 
+                            onClick={() => handleToggleFavorite(place.id)}
+                            className={cn(
+                              "flex h-9 w-9 items-center justify-center rounded-lg border text-[10px] font-black transition-colors",
+                              favorites.some(f => f.place_id === place.id)
+                                ? "border-stone-900 bg-stone-900 text-white"
+                                : "border-stone-200 bg-white text-stone-700 hover:bg-stone-100"
+                            )}
+                            aria-label="Toggle favorite"
+                          >
+                            <Heart className={cn("w-4 h-4", favorites.some(f => f.place_id === place.id) && "fill-current")} />
+                          </button>
+                          <button 
                             onClick={() => openPlaceDetail(place)}
-                            className="flex-1 py-2 bg-[#fff4f1] text-[#b51c00] text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
+                            className="flex-1 py-2 bg-stone-900 text-white text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
                           >
                             <Info className="w-3 h-3" />
                             Details
@@ -1878,7 +1890,7 @@ export default function App() {
                               </button>
                               <button 
                                 onClick={() => handleDeletePlace(place.id)}
-                                className="flex-1 py-2 bg-rose-50 text-rose-500 text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
+                                className="flex-1 py-2 bg-stone-100 text-stone-700 text-[10px] font-black rounded-lg uppercase tracking-widest flex items-center justify-center gap-1"
                               >
                                 <Trash2 className="w-3 h-3" />
                                 Delete
@@ -1983,7 +1995,7 @@ export default function App() {
                             onClick={(e) => { e.stopPropagation(); handleToggleFavorite(place.id); }}
                             className={cn(
                               "p-2 rounded-xl transition-all",
-                              favorites.some(f => f.place_id === place.id) ? "bg-red-50 text-red-500" : "hover:bg-stone-50 text-stone-300"
+                              favorites.some(f => f.place_id === place.id) ? "bg-stone-900 text-white" : "hover:bg-stone-50 text-stone-300"
                             )}
                           >
                             <Heart className={cn("w-4 h-4", favorites.some(f => f.place_id === place.id) && "fill-current")} />
@@ -1996,7 +2008,7 @@ export default function App() {
                               e.stopPropagation();
                               openPlaceDetail(place);
                             }}
-                            className="flex items-center gap-1 text-[10px] font-black text-[#b51c00] hover:opacity-80 transition-colors"
+                            className="flex items-center gap-1 text-[10px] font-black text-stone-900 hover:opacity-80 transition-colors"
                           >
                             <Info className="w-3 h-3" />
                             DETAILS
@@ -2041,27 +2053,16 @@ export default function App() {
               className="milz-editorial-bg h-full overflow-y-auto px-6 pb-36 pt-6"
             >
               <div className="mx-auto max-w-6xl space-y-8">
-                <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#b51c00,#d9371a)] px-7 py-8 text-white shadow-[0_24px_60px_rgba(25,28,29,0.14)]">
-                  <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-3xl" />
-                  <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-                    <div className="max-w-2xl space-y-3">
-                      <p className="text-[10px] font-black uppercase tracking-[0.32em] text-white/72">MILZ AI Discovery</p>
-                      <h2 className="font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em] text-white md:text-5xl">
-                        Curated recommendations and trends around your selected region.
+                <section className="relative overflow-hidden rounded-[2rem] border border-stone-200 bg-white px-7 py-8 text-stone-900 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                  <div className="relative z-10 flex flex-col gap-4">
+                    <div className="max-w-3xl space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.32em] text-stone-400">MILZ AI Discovery</p>
+                      <h2 className="font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em] text-stone-900 md:text-5xl">
+                        Curated recommendations and real-time trends for your selected region.
                       </h2>
-                      <p className="max-w-xl text-sm leading-7 text-white/84">
-                        Keep the map practical. Make discovery feel more premium, editorial, and easier to trust.
+                      <p className="max-w-2xl text-sm leading-7 text-stone-500">
+                        Keep discovery practical, premium, and easy to trust without decorative noise.
                       </p>
-                    </div>
-                    <div className="glass-panel rounded-[1.5rem] border border-white/20 px-5 py-4 text-sm text-white shadow-[0_14px_34px_rgba(25,28,29,0.12)]">
-                      <div className="flex items-center gap-2 text-white/72">
-                        <Sparkles className="h-4 w-4" />
-                        <span className="font-semibold">Recommendation: 14-day cache</span>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2 text-white/72">
-                        <TrendingUp className="h-4 w-4" />
-                        <span className="font-semibold">Trend: 1-day cache</span>
-                      </div>
                     </div>
                   </div>
                 </section>
@@ -2085,7 +2086,7 @@ export default function App() {
                           className={cn(
                             'flex-none rounded-full px-5 py-3 text-sm font-bold transition-all',
                             active
-                              ? 'bg-[#b51c00] text-white shadow-[0_14px_30px_rgba(181,28,0,0.18)]'
+                              ? 'bg-stone-900 text-white shadow-[0_14px_30px_rgba(25,28,29,0.16)]'
                               : 'bg-[#f3f4f5] text-[#191c1d] hover:bg-white'
                           )}
                         >
@@ -2164,7 +2165,7 @@ export default function App() {
                             className={cn(
                               'rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition-all',
                               aiTrendCategory === cat
-                                ? 'bg-[#006a62] text-white shadow-[0_10px_24px_rgba(0,106,98,0.16)]'
+                                ? 'bg-stone-900 text-white shadow-[0_10px_24px_rgba(25,28,29,0.16)]'
                                 : 'bg-white text-[#5f6368]'
                             )}
                           >
@@ -2177,14 +2178,14 @@ export default function App() {
                     <button
                       onClick={handleAiRecommend}
                       disabled={aiLoading}
-                      className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(135deg,#b51c00,#d9371a)] px-6 py-5 text-sm font-black text-white shadow-[0_18px_34px_rgba(181,28,0,0.18)] transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-stone-900 px-6 py-5 text-sm font-black text-white shadow-[0_18px_34px_rgba(25,28,29,0.18)] transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {aiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
                       {aiMode === 'recommend' ? t.getRecommendations : t.getTrends}
                     </button>
 
                     {aiError && (
-                      <div className="rounded-[1.5rem] border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-700">
+                      <div className="rounded-[1.5rem] border border-stone-200 bg-white px-5 py-4 text-sm text-stone-700">
                         <div className="flex items-start gap-2">
                           <AlertCircle className="mt-0.5 h-4 w-4" />
                           <span>{t.aiErrorPrefix}: {aiError}</span>
@@ -2201,16 +2202,16 @@ export default function App() {
 
                         {recommendationCards[0] && (
                           <div className="group relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#191c1d,#2f3335)] p-8 text-white shadow-[0_24px_60px_rgba(25,28,29,0.18)]">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(181,28,0,0.35),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(0,106,98,0.25),transparent_26%)]" />
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_26%)]" />
                             <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                               <div className="max-w-2xl">
-                                <span className="inline-flex rounded-full bg-[#006a62] px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white">MILZ Top Match</span>
+                                <span className="inline-flex rounded-full bg-stone-900 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white">MILZ Top Match</span>
                                 <h4 className="mt-4 font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em]">
                                   {uiLanguage === 'ja' ? (recommendationCards[0].name_ja || recommendationCards[0].name_en) : (recommendationCards[0].name_en || recommendationCards[0].name_ja)}
                                 </h4>
                                 <div className="mt-4 max-w-xl rounded-[1.5rem] border border-white/15 bg-white/10 p-4 backdrop-blur-xl">
                                   <div className="flex gap-3">
-                                    <Sparkles className="mt-0.5 h-5 w-5 text-[#84f5e8]" />
+                                    <Sparkles className="mt-0.5 h-5 w-5 text-stone-200" />
                                     <p className="text-sm leading-7 text-white/88">
                                       {uiLanguage === 'ja' ? (recommendationCards[0].reason_ja || recommendationCards[0].reason_en) : (recommendationCards[0].reason_en || recommendationCards[0].reason_ja)}
                                     </p>
@@ -2255,7 +2256,7 @@ export default function App() {
                             <div key={i} className="glass-panel rounded-[1.75rem] border border-white/70 bg-white/92 p-6 shadow-[0_16px_34px_rgba(25,28,29,0.08)]">
                               <div className="flex items-start justify-between gap-3">
                                 <div className="flex items-start gap-3">
-                                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#006a62]/10 text-[#006a62]">
+                                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-stone-100 text-stone-700">
                                     <TrendingUp className="h-5 w-5" />
                                   </div>
                                   <div>
@@ -2274,7 +2275,7 @@ export default function App() {
                                   <span>{trend.popularity}%</span>
                                 </div>
                                 <div className="h-2 overflow-hidden rounded-full bg-[#eef0f1]">
-                                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#006a62,#84f5e8)]" style={{ width: `${trend.popularity}%` }} />
+                                  <div className="h-full rounded-full bg-stone-900" style={{ width: `${trend.popularity}%` }} />
                                 </div>
                               </div>
                               {trend.source_url && (
@@ -2282,7 +2283,7 @@ export default function App() {
                                   href={trend.source_url}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#b51c00] hover:opacity-80"
+                                  className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-stone-900 hover:opacity-80"
                                 >
                                   <ExternalLink className="h-3.5 w-3.5" />
                                   {t.source}
@@ -2296,13 +2297,6 @@ export default function App() {
                   </div>
 
                   <aside className="space-y-4">
-                    <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
-                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Tone</p>
-                      <h4 className="mt-3 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">Premium editorial discovery</h4>
-                      <p className="mt-3 text-sm leading-7 text-[#5f6368]">
-                        Recommendation emphasizes real places. Trend emphasizes currently searched topics. Both should feel curated, not templated.
-                      </p>
-                    </div>
                     <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
                       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Region Summary</p>
                       <div className="mt-4 space-y-4">
@@ -2453,36 +2447,36 @@ export default function App() {
       <nav className="fixed bottom-0 left-0 right-0 z-[1002] mx-auto flex max-w-screen-sm items-end justify-around rounded-t-[32px] bg-white/92 px-4 pb-6 pt-3 shadow-[0_-8px_32px_rgba(0,0,0,0.06)] backdrop-blur-xl md:left-6 md:right-6 md:bottom-4 md:max-w-4xl">
         <button
           onClick={() => setActiveTab('map')}
-          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'map' ? 'text-[#b51c00]' : 'text-zinc-400 hover:text-[#b51c00]')}
+          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'map' ? 'text-stone-900' : 'text-zinc-400 hover:text-stone-700')}
         >
-          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'map' ? 'bg-[#fff4f1] text-[#b51c00]' : 'bg-transparent')}>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'map' ? 'bg-stone-100 text-stone-900' : 'bg-transparent')}>
             <MapIcon className="h-5 w-5" />
           </span>
           <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">MAP</span>
         </button>
         <button
           onClick={() => setActiveTab('list')}
-          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'list' ? 'text-[#b51c00]' : 'text-zinc-400 hover:text-[#b51c00]')}
+          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'list' ? 'text-stone-900' : 'text-zinc-400 hover:text-stone-700')}
         >
-          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'list' ? 'bg-[#fff4f1] text-[#b51c00]' : 'bg-transparent')}>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'list' ? 'bg-stone-100 text-stone-900' : 'bg-transparent')}>
             <ListIcon className="h-5 w-5" />
           </span>
           <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">LIST</span>
         </button>
         <button
           onClick={() => setActiveTab('ai')}
-          className="relative -top-2 flex flex-col items-center justify-center text-[#b51c00]"
+          className="relative -top-2 flex flex-col items-center justify-center text-stone-900"
         >
-          <div className={cn('mb-1 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-[#b51c00]/30 transition-all', activeTab === 'ai' ? 'bg-[#b51c00] text-white' : 'bg-[#fff4f1] text-[#b51c00] border border-[#f3c4ba]')}>
+          <div className={cn('mb-1 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-stone-900/20 transition-all', activeTab === 'ai' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-900 border border-stone-200')}>
             <Sparkles className="h-6 w-6" />
           </div>
           <span className="font-['Inter'] text-[10px] font-bold uppercase tracking-widest">AI</span>
         </button>
         <button
           onClick={() => setActiveTab('profile')}
-          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'profile' ? 'text-[#b51c00]' : 'text-zinc-400 hover:text-[#b51c00]')}
+          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'profile' ? 'text-stone-900' : 'text-zinc-400 hover:text-stone-700')}
         >
-          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'profile' ? 'bg-[#fff4f1] text-[#b51c00]' : 'bg-transparent')}>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'profile' ? 'bg-stone-100 text-stone-900' : 'bg-transparent')}>
             <UserIcon className="h-5 w-5" />
           </span>
           <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">ME</span>
@@ -2499,13 +2493,13 @@ export default function App() {
           >
             <div className="h-full overflow-y-auto pb-40">
               <header className="sticky top-0 z-20 flex items-center justify-between bg-white/88 px-5 py-4 backdrop-blur-xl border-b border-[#eceef0]">
-                <button onClick={closePlaceDetail} className="text-[#b51c00]">
+                <button onClick={closePlaceDetail} className="text-stone-700">
                   <ChevronRight className="h-5 w-5 rotate-180" />
                 </button>
-                <div className="text-sm font-black tracking-tight text-[#b51c00]">MILZ</div>
+                <div className="text-sm font-black tracking-tight text-stone-900">MILZ</div>
                 <button
                   onClick={() => selectedPlace && handleToggleFavorite(selectedPlace.id)}
-                  className={cn('flex h-9 w-9 items-center justify-center rounded-full border transition-colors', selectedPlaceIsFavorite ? 'border-[#c7efe9] bg-[#e9fbf7] text-[#006a62]' : 'border-[#f0c5bc] bg-white text-[#b51c00]')}
+                  className={cn('flex h-9 w-9 items-center justify-center rounded-full border transition-colors', selectedPlaceIsFavorite ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700')}
                 >
                   <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite && 'fill-current')} />
                 </button>
@@ -2531,7 +2525,7 @@ export default function App() {
                   <div className="mt-5 flex gap-3">
                     <button
                       onClick={() => { setActiveTab('map'); closePlaceDetail(); setTimeout(() => mapRef.current?.flyTo([selectedPlace.lat, selectedPlace.lng], 16), 140); }}
-                      className="inline-flex min-w-[11rem] items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#b51c00,#d9371a)] px-6 py-3 text-sm font-black text-white shadow-[0_18px_34px_rgba(181,28,0,0.18)]"
+                      className="inline-flex min-w-[11rem] items-center justify-center gap-2 rounded-full bg-stone-900 px-6 py-3 text-sm font-black text-white shadow-[0_18px_34px_rgba(25,28,29,0.18)]"
                     >
                       <Navigation className="h-4 w-4" />
                       View on Map
@@ -2554,7 +2548,7 @@ export default function App() {
                   <div className="mt-6 grid gap-4 sm:grid-cols-2">
                     <div className="rounded-[1.4rem] bg-white px-5 py-4">
                       <div className="flex items-start gap-3">
-                        <MapPin className="mt-0.5 h-5 w-5 text-[#006a62]" />
+                        <MapPin className="mt-0.5 h-5 w-5 text-stone-700" />
                         <div>
                           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#191c1d]">Address</p>
                           <p className="mt-2 text-sm leading-6 text-[#5f6368]">{selectedPlace.address || selectedPlaceScopedLocation || 'Pinned directly on the map by the MILZ admin team.'}</p>
@@ -2563,7 +2557,7 @@ export default function App() {
                     </div>
                     <div className="rounded-[1.4rem] bg-white px-5 py-4">
                       <div className="flex items-start gap-3">
-                        <Globe className="mt-0.5 h-5 w-5 text-[#006a62]" />
+                        <Globe className="mt-0.5 h-5 w-5 text-stone-700" />
                         <div>
                           <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#191c1d]">Official Link</p>
                           <p className="mt-2 text-sm leading-6 text-[#5f6368] break-all">{selectedPlace.website_url || 'No official website was registered for this spot.'}</p>
@@ -2576,7 +2570,7 @@ export default function App() {
                 <section>
                   <div className="mb-5 flex items-end justify-between">
                     <h3 className="font-['Plus_Jakarta_Sans'] text-[2rem] font-extrabold leading-tight tracking-[-0.04em] text-[#191c1d]">Spot Details</h3>
-                    <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[#b51c00]">MILZ Editorial</span>
+                    <span className="text-[11px] font-black uppercase tracking-[0.18em] text-stone-900">MILZ Editorial</span>
                   </div>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <div className="overflow-hidden rounded-[1.25rem] bg-[#191c1d] p-5 text-white">
@@ -2584,7 +2578,7 @@ export default function App() {
                       <p className="mt-3 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em]">{selectedPlace.category}</p>
                     </div>
                     <div className="overflow-hidden rounded-[1.25rem] bg-[#f0faf8] p-5 text-[#00201d]">
-                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#006a62]">Saved Status</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.22em] text-stone-500">Saved Status</p>
                       <p className="mt-3 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em]">{selectedPlaceIsFavorite ? 'Saved' : 'Not Saved'}</p>
                     </div>
                     <div className="rounded-[1.25rem] bg-white p-5">
@@ -2600,18 +2594,18 @@ export default function App() {
 
                 <section className="rounded-[1.75rem] bg-[#eaf7f4] p-6 relative overflow-hidden">
                   <div className="relative z-10">
-                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#006a62]">Save for Later</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.24em] text-stone-500">Save for Later</p>
                     <h4 className="mt-3 font-['Plus_Jakarta_Sans'] text-3xl font-extrabold tracking-[-0.04em] text-[#00201d]">Keep this spot in your MILZ list</h4>
                     <p className="mt-3 max-w-xl text-sm leading-7 text-[#33544f]">Save the admin-curated spot to revisit it later or jump back to the map when you are building a route.</p>
                     <button
                       onClick={() => selectedPlace && handleToggleFavorite(selectedPlace.id)}
-                      className="mt-6 inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-[#006a62]"
+                      className="mt-6 inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-stone-900"
                     >
                       <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite && 'fill-current')} />
                       {selectedPlaceIsFavorite ? 'Saved to Favorites' : 'Add to Favorites'}
                     </button>
                   </div>
-                  <Heart className="absolute -bottom-4 -right-4 h-28 w-28 text-[#cceee7]" />
+                  <Heart className="absolute -bottom-4 -right-4 h-28 w-28 text-stone-200" />
                 </section>
               </div>
             </div>

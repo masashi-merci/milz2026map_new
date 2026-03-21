@@ -354,74 +354,25 @@ const generateRecommendations = async (ai: GoogleGenAI, location: string, catego
   return validated.slice(0, 10);
 };
 
-const summarizeTrends = async (ai: GoogleGenAI, region: RegionConfig, location: string, category: string, feed: TrendFeedItem[]): Promise<TrendItem[]> => {
-  const sourceLines = feed.slice(0, 8).map((item, index) => `${index + 1}. ${item.title}${item.traffic ? ` | traffic: ${item.traffic}` : ''}`);
-  const prompt = [
-    'You are a bilingual trend editor for a travel and local discovery app.',
-    `Target location: ${location}. Region baseline: ${region.label}. Category preference: ${category || 'general'}.`,
-    'Below are actual trending search queries from Google Trends RSS. Keep the core search term recognizable.',
-    'Return exactly 10 items in JSON. topic_ja/topic_en should stay close to the original search term, while description_ja/description_en explain why the term is hot and how it may connect to local discovery.',
-    'Do not invent fake facilities. Do not convert search terms into placeholders.',
-    sourceLines.join('\n'),
-  ].join('\n');
-
-  const response = await timeoutFetch(() => ai.models.generateContent({
-    model: 'gemini-2.5-flash-lite',
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          trends: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                topic_ja: { type: Type.STRING },
-                topic_en: { type: Type.STRING },
-                description_ja: { type: Type.STRING },
-                description_en: { type: Type.STRING },
-                category: { type: Type.STRING },
-                popularity: { type: Type.NUMBER },
-                keyword_ja: { type: Type.STRING },
-                keyword_en: { type: Type.STRING },
-              },
-              required: ['topic_ja', 'topic_en', 'description_ja', 'description_en', 'category', 'popularity'],
-            },
-          },
-        },
-        required: ['trends'],
-      },
-      maxOutputTokens: 900,
-      temperature: 0.15,
-    },
-  }), 12000);
-
-  const text = response.text;
-  if (!text) throw new Error('Empty AI response');
-  const parsed = JSON.parse(text) as { trends?: Array<Record<string, unknown>> };
-  const raw = Array.isArray(parsed.trends) ? parsed.trends : [];
+const summarizeTrends = async (_ai: GoogleGenAI, region: RegionConfig, location: string, category: string, feed: TrendFeedItem[]): Promise<TrendItem[]> => {
+  const categoryName = categoryLabel(category).toUpperCase();
+  const scope = location || region.label;
   const results: TrendItem[] = [];
 
-  for (let index = 0; index < raw.length && results.length < 10; index += 1) {
-    const row = raw[index];
-    const source = feed[index] || feed[0];
-    const topicJa = String(row.topic_ja || row.keyword_ja || source?.title || '').trim();
-    const topicEn = String(row.topic_en || row.keyword_en || source?.title || '').trim();
-    const descriptionJa = String(row.description_ja || '').trim();
-    const descriptionEn = String(row.description_en || '').trim();
-    if (!topicJa || !topicEn || !descriptionJa || !descriptionEn) continue;
+  for (let index = 0; index < feed.length && results.length < 10; index += 1) {
+    const item = feed[index];
+    const title = item.title.trim();
+    if (!title) continue;
     results.push({
-      topic_ja: topicJa,
-      topic_en: topicEn,
-      keyword_ja: String(row.keyword_ja || source?.title || topicJa).trim(),
-      keyword_en: String(row.keyword_en || source?.title || topicEn).trim(),
-      description_ja: descriptionJa,
-      description_en: descriptionEn,
-      category: String(row.category || 'TREND').trim() || 'TREND',
-      popularity: typeof row.popularity === 'number' ? Math.max(50, Math.min(100, row.popularity)) : Math.max(55, 95 - index * 7),
-      source_url: source?.sourceUrl || '',
+      topic_ja: title,
+      topic_en: title,
+      keyword_ja: title,
+      keyword_en: title,
+      description_ja: `${scope} で実際に検索上位へ出ている話題です。エリアの動きや今の関心をつかむ入口として使いやすいテーマです。`,
+      description_en: `This is an actually trending search topic in ${scope}. It works well as a signal for what people are currently paying attention to in the area.`,
+      category: categoryName === 'ALL' ? 'TREND' : categoryName,
+      popularity: Math.max(55, 97 - index * 5),
+      source_url: item.sourceUrl,
     });
   }
 
