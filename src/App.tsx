@@ -2465,12 +2465,12 @@ export default function App() {
         </button>
         <button
           onClick={() => setActiveTab('ai')}
-          className="relative -top-2 flex flex-col items-center justify-center text-stone-900"
+          className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'ai' ? 'text-stone-900' : 'text-zinc-400 hover:text-stone-700')}
         >
-          <div className={cn('mb-1 flex h-14 w-14 items-center justify-center rounded-full shadow-lg shadow-stone-900/20 transition-all', activeTab === 'ai' ? 'bg-stone-900 text-white' : 'bg-stone-100 text-stone-900 border border-stone-200')}>
-            <Sparkles className="h-6 w-6" />
-          </div>
-          <span className="font-['Inter'] text-[10px] font-bold uppercase tracking-widest">AI</span>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'ai' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/15' : 'bg-transparent')}>
+            <Sparkles className="h-5 w-5" />
+          </span>
+          <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">AI</span>
         </button>
         <button
           onClick={() => setActiveTab('profile')}
@@ -2479,7 +2479,7 @@ export default function App() {
           <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'profile' ? 'bg-stone-100 text-stone-900' : 'bg-transparent')}>
             <UserIcon className="h-5 w-5" />
           </span>
-          <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">ME</span>
+          <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">PROFILE</span>
         </button>
       </nav>
 

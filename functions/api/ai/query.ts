@@ -219,6 +219,98 @@ const parseGoogleTrendsRss = (xml: string): TrendFeedItem[] => {
   }).filter((item) => item.title);
 };
 
+
+const googleSuggestUrl = (query: string, region: RegionConfig) => {
+  const url = new URL('https://suggestqueries.google.com/complete/search');
+  url.searchParams.set('client', 'firefox');
+  url.searchParams.set('q', query);
+  url.searchParams.set('hl', region.countryCode === 'jp' ? 'ja' : region.countryCode === 'kr' ? 'ko' : 'en');
+  url.searchParams.set('gl', region.countryCode.toUpperCase());
+  return url.toString();
+};
+
+const fetchAutocompleteSuggestions = async (query: string, region: RegionConfig): Promise<string[]> => {
+  const res = await timeoutFetch(() => fetch(googleSuggestUrl(query, region), {
+    headers: {
+      'User-Agent': 'Milz/1.0 (+https://github.com/masashi-merci/milz2026map_new)',
+      'Accept': 'application/json, text/javascript, */*;q=0.5',
+    },
+  }), 7000);
+  if (!res.ok) return [];
+  const payload = await res.json().catch(() => null) as unknown;
+  if (!Array.isArray(payload) || payload.length < 2 || !Array.isArray(payload[1])) return [];
+  return (payload[1] as unknown[])
+    .map((v) => String(v || '').trim())
+    .filter(Boolean);
+};
+
+const buildTrendSearchQueries = (location: string, category: string) => {
+  const base = location.trim();
+  const c = categoryLabel(category);
+  const categoryMap: Record<string, string[]> = {
+    cafe: ['cafe', 'coffee', 'カフェ'],
+    restaurant: ['lunch', 'dinner', 'グルメ'],
+    shopping: ['shopping', '買い物', 'shop'],
+    park: ['park', 'nature', '公園'],
+    transit: ['station', 'access', '駅'],
+    all: ['things to do', 'food', 'shopping'],
+  };
+  const extras = categoryMap[c] || categoryMap.all;
+  return [base, ...extras.map((extra) => `${base} ${extra}`)];
+};
+
+const scoreSuggestion = (suggestion: string, location: string) => {
+  const normalizedSuggestion = normalize(suggestion);
+  const normalizedLocation = normalize(location);
+  let score = 0;
+  if (normalizedSuggestion.includes(normalizedLocation)) score += 6;
+  const locationParts = normalizedLocation.split(' ').filter((part) => part.length >= 2);
+  for (const part of locationParts) {
+    if (normalizedSuggestion.includes(part)) score += 2;
+  }
+  if (/2026|2025|near me|近く|人気|おすすめ|ランチ|カフェ|restaurant|shopping|park|station/.test(normalizedSuggestion)) score += 1;
+  return score;
+};
+
+const buildLocationAwareTrendItems = async (region: RegionConfig, location: string, category: string): Promise<TrendItem[]> => {
+  const queries = buildTrendSearchQueries(location, category);
+  const bag: string[] = [];
+  for (const query of queries) {
+    const suggestions = await fetchAutocompleteSuggestions(query, region);
+    bag.push(...suggestions);
+    if (bag.length >= 40) break;
+  }
+
+  const seen = new Set<string>();
+  const deduped = bag
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item) => {
+      const key = normalize(item);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+  const ranked = deduped
+    .map((title) => ({ title, score: scoreSuggestion(title, location) }))
+    .sort((a, b) => b.score - a.score || a.title.length - b.title.length)
+    .slice(0, 10)
+    .map((item, index) => ({
+      topic_ja: item.title,
+      topic_en: item.title,
+      keyword_ja: item.title,
+      keyword_en: item.title,
+      description_ja: `${location} に対して実際の検索サジェストから拾った話題です。今この場所に対して一緒に調べられやすいキーワードです。`,
+      description_en: `This topic comes from actual search suggestions tied to ${location}. It reflects what people are currently searching together with this place.`,
+      category: categoryLabel(category).toUpperCase() === 'ALL' ? 'TREND' : categoryLabel(category).toUpperCase(),
+      popularity: Math.max(58, 96 - index * 4),
+      source_url: `https://www.google.com/search?q=${encodeURIComponent(item.title)}`,
+    }));
+
+  return ranked;
+};
+
 const fetchTrendFeed = async (region: RegionConfig): Promise<TrendFeedItem[]> => {
   const url = `https://trends.google.com/trending/rss?geo=${region.trendGeo}`;
   const res = await timeoutFetch(() => fetch(url, {
@@ -393,7 +485,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const category = String(body?.category || 'general').trim().slice(0, 80);
     const bodyRefresh = Boolean(body?.refresh);
 
-    const region = pickRegion(location);
+    const regionKey = String(body?.region || '').trim().toLowerCase();
+    const region = REGIONS.find((item) => item.key === regionKey) || pickRegion(location);
     const cacheScope = mode === 'recommend'
       ? `${region.key}|${categoryLabel(category)}`
       : `${region.key}|${categoryLabel(category)}|trends`;
@@ -419,10 +512,16 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       }, RECOMMEND_TTL);
     }
 
-    const feed = await fetchTrendFeed(region);
-    const trends = feed.length ? await summarizeTrends(ai, region, location, category, feed) : buildTrendFallback(region, []);
+    const locationAwareTrends = await buildLocationAwareTrendItems(region, location, category);
+    let resolvedTrends: TrendItem[];
+    if (locationAwareTrends.length >= 10) {
+      resolvedTrends = locationAwareTrends.slice(0, 10);
+    } else {
+      const feed = await fetchTrendFeed(region).catch(() => [] as TrendFeedItem[]);
+      resolvedTrends = feed.length ? await summarizeTrends(ai, region, location, category, feed) : buildTrendFallback(region, []);
+    }
     return await toCacheResponse(cache, cacheUrl, {
-      trends,
+      trends: resolvedTrends,
       generatedAt: new Date().toISOString(),
       mode,
       location,
