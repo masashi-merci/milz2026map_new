@@ -259,6 +259,55 @@ const buildTrendSearchQueries = (location: string, category: string) => {
   return [base, ...extras.map((extra) => `${base} ${extra}`)];
 };
 
+
+const trendReasonFromKeyword = (title: string, location: string) => {
+  const value = normalize(title);
+  if (/桜|sakura|cherry blossom|紅葉|autumn leaves|christmas|イルミ|illumination|hanami/.test(value)) {
+    return {
+      ja: `${location} 周辺で季節イベントや見頃と結びついて検索されやすい話題です。時期性が強く、外出計画や撮影目的で一緒に調べられています。`,
+      en: `This topic is likely being searched together with ${location} because of seasonal events or peak viewing periods.`
+    };
+  }
+  if (/ランチ|cafe|カフェ|coffee|restaurant|グルメ|food|ramen|居酒屋/.test(value)) {
+    return {
+      ja: `${location} で食事先やカフェを探す文脈で検索が伸びている可能性が高い話題です。来訪前の比較検討や当日検索に近い温度感があります。`,
+      en: `This appears to be rising because people searching around ${location} are actively comparing food and café options.`
+    };
+  }
+  if (/hotel|宿|旅館|stay|airbnb|観光|itinerary|model course|アクセス|how to get|station|駅/.test(value)) {
+    return {
+      ja: `${location} への来訪計画や移動導線の確認と一緒に検索されやすい話題です。観光前後の実用検索に近いテーマです。`,
+      en: `This likely trends with ${location} because people are planning visits, routes, or logistics around the area.`
+    };
+  }
+  if (/open|opening|new|新店|popup|limited|限定|event|festival|live|展覧会|展示|コラボ/.test(value)) {
+    return {
+      ja: `${location} 周辺の新規オープン、期間限定企画、イベント文脈で検索されやすい話題です。今だけ性があるため短期的に注目されやすいです。`,
+      en: `This likely picks up around ${location} because of openings, limited events, or time-sensitive activations.`
+    };
+  }
+  return {
+    ja: `${location} を調べる人が一緒に検索している関連ワードです。現地での行き先選び、比較検討、直前行動のどれかに近い実用検索として見られます。`,
+    en: `This appears as a related search around ${location}, likely tied to planning, comparison, or near-term intent.`
+  };
+};
+
+const parseModelJson = (raw: string) => {
+  const text = raw.trim();
+  try { return JSON.parse(text); } catch {}
+  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
+  if (fenced?.[1]) {
+    try { return JSON.parse(fenced[1].trim()); } catch {}
+  }
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    const slice = text.slice(start, end + 1);
+    try { return JSON.parse(slice); } catch {}
+  }
+  throw new Error('Model returned non-JSON output');
+};
+
 const scoreSuggestion = (suggestion: string, location: string) => {
   const normalizedSuggestion = normalize(suggestion);
   const normalizedLocation = normalize(location);
@@ -301,8 +350,8 @@ const buildLocationAwareTrendItems = async (region: RegionConfig, location: stri
       topic_en: item.title,
       keyword_ja: item.title,
       keyword_en: item.title,
-      description_ja: `${location} に対して実際の検索サジェストから拾った話題です。今この場所に対して一緒に調べられやすいキーワードです。`,
-      description_en: `This topic comes from actual search suggestions tied to ${location}. It reflects what people are currently searching together with this place.`,
+      description_ja: trendReasonFromKeyword(item.title, location).ja,
+      description_en: trendReasonFromKeyword(item.title, location).en,
       category: categoryLabel(category).toUpperCase() === 'ALL' ? 'TREND' : categoryLabel(category).toUpperCase(),
       popularity: Math.max(58, 96 - index * 4),
       source_url: `https://www.google.com/search?q=${encodeURIComponent(item.title)}`,
@@ -408,7 +457,7 @@ const generateRecommendations = async (ai: GoogleGenAI, location: string, catego
 
   const text = response.text;
   if (!text) throw new Error('Empty AI response');
-  const parsed = JSON.parse(text) as { recommendations?: Array<Record<string, unknown>> };
+  const parsed = parseModelJson(text) as { recommendations?: Array<Record<string, unknown>> };
   const raw = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
   const validated: RecommendationItem[] = [];
   const seen = new Set<string>();
@@ -460,8 +509,8 @@ const summarizeTrends = async (_ai: GoogleGenAI, region: RegionConfig, location:
       topic_en: title,
       keyword_ja: title,
       keyword_en: title,
-      description_ja: `${scope} で実際に検索上位へ出ている話題です。エリアの動きや今の関心をつかむ入口として使いやすいテーマです。`,
-      description_en: `This is an actually trending search topic in ${scope}. It works well as a signal for what people are currently paying attention to in the area.`,
+      description_ja: trendReasonFromKeyword(title, scope).ja,
+      description_en: trendReasonFromKeyword(title, scope).en,
       category: categoryName === 'ALL' ? 'TREND' : categoryName,
       popularity: Math.max(55, 97 - index * 5),
       source_url: item.sourceUrl,
@@ -487,9 +536,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     const regionKey = String(body?.region || '').trim().toLowerCase();
     const region = REGIONS.find((item) => item.key === regionKey) || pickRegion(location);
+    const locationScope = normalize(location);
     const cacheScope = mode === 'recommend'
-      ? `${region.key}|${categoryLabel(category)}`
-      : `${region.key}|${categoryLabel(category)}|trends`;
+      ? `${region.key}|${locationScope}|${categoryLabel(category)}`
+      : `${region.key}|${locationScope}|${categoryLabel(category)}|trends`;
     const cacheKey = await buildCacheKey(mode, cacheScope, categoryLabel(category));
     const cacheUrl = `https://edge-cache.local/milz-ai-${cacheKey}`;
     const cache = caches.default;

@@ -168,6 +168,21 @@ type RecommendationCard = {
   reason_ja: string;
   reason_en: string;
   category: string;
+  lat?: number;
+  lng?: number;
+};
+
+type AiFavorite = {
+  id: string;
+  type: 'recommend' | 'trend';
+  title: string;
+  subtitle?: string;
+  description: string;
+  locationLabel: string;
+  lat?: number;
+  lng?: number;
+  source_url?: string;
+  created_at: string;
 };
 
 function curatedRecommendationFallback(location: string): RecommendationCard[] {
@@ -208,6 +223,8 @@ function normalizeRecommendationCards(results: AIResults | null, location: strin
       reason_ja: String(rec?.reason_ja || rec?.description_ja || rec?.description || rec?.reason || rec?.reason_en || '').trim(),
       reason_en: String(rec?.reason_en || rec?.description_en || rec?.description || rec?.reason || rec?.reason_ja || '').trim(),
       category: String(rec?.category || 'PLACE').trim() || 'PLACE',
+      lat: Number(rec?.lat),
+      lng: Number(rec?.lng),
     }))
     .filter((rec) => rec.name_ja || rec.name_en)
     .map((rec) => ({
@@ -555,6 +572,14 @@ export default function App() {
     return () => window.removeEventListener('supabase-debug-log', handleDiagLog);
   }, [addLog]);
   const [aiResults, setAiResults] = useState<AIResults | null>(null);
+  const [aiFavorites, setAiFavorites] = useState<AiFavorite[]>(() => {
+    try {
+      const raw = localStorage.getItem('milz_ai_saved_v1');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   const [authMode, setAuthMode] = useState<'login' | 'signup' | 'signin'>('signin');
   const [selectedAuthRole, setSelectedAuthRole] = useState<UserRole>('user');
   const [pendingRole, setPendingRole] = useState<UserRole | null>(null);
@@ -568,6 +593,12 @@ export default function App() {
   const isFetchingProfileRef = useRef(false);
 
   const mapRef = useRef<L.Map | null>(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('milz_ai_saved_v1', JSON.stringify(aiFavorites));
+    } catch {}
+  }, [aiFavorites]);
 
   const [isConfigMissing, setIsConfigMissing] = useState(!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY);
 
@@ -1337,6 +1368,49 @@ export default function App() {
     }
   };
 
+
+  const isAiFavoriteSaved = (id: string) => aiFavorites.some((item) => item.id === id);
+
+  const toggleAiFavorite = (item: AiFavorite) => {
+    setAiFavorites((current) => current.some((entry) => entry.id === item.id)
+      ? current.filter((entry) => entry.id !== item.id)
+      : [item, ...current]);
+  };
+
+  const moveToMapLocation = (lat?: number, lng?: number) => {
+    setActiveTab('map');
+    const targetLat = typeof lat === 'number' && !Number.isNaN(lat) ? lat : activeRegion.mapCenter[0];
+    const targetLng = typeof lng === 'number' && !Number.isNaN(lng) ? lng : activeRegion.mapCenter[1];
+    setTimeout(() => {
+      mapRef.current?.flyTo([targetLat, targetLng], typeof lat === 'number' && typeof lng === 'number' ? 15 : activeRegion.mapZoom);
+    }, 150);
+  };
+
+  const makeRecommendationFavorite = (rec: RecommendationCard): AiFavorite => ({
+    id: `recommend:${selectedRegionKey}:${(rec.name_en || rec.name_ja).toLowerCase()}`,
+    type: 'recommend',
+    title: uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja),
+    subtitle: rec.category,
+    description: uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja),
+    locationLabel: buildScopedLocationString(activeRegion, locationFilter) || `${activeRegion.country} ${activeRegion.prefecture} ${activeRegion.municipality}`,
+    lat: rec.lat,
+    lng: rec.lng,
+    created_at: new Date().toISOString(),
+  });
+
+  const makeTrendFavorite = (trend: NonNullable<AIResults['trends']>[number]): AiFavorite => ({
+    id: `trend:${selectedRegionKey}:${(trend.topic_en || trend.topic_ja || trend.keyword_en || trend.keyword_ja).toLowerCase()}`,
+    type: 'trend',
+    title: uiLanguage === 'ja' ? (trend.topic_ja || trend.keyword_ja || trend.topic_en) : (trend.topic_en || trend.keyword_en || trend.topic_ja),
+    subtitle: trend.category,
+    description: uiLanguage === 'ja' ? trend.description_ja : trend.description_en,
+    locationLabel: buildScopedLocationString(activeRegion, locationFilter) || `${activeRegion.country} ${activeRegion.prefecture} ${activeRegion.municipality}`,
+    lat: activeRegion.mapCenter[0],
+    lng: activeRegion.mapCenter[1],
+    source_url: trend.source_url,
+    created_at: new Date().toISOString(),
+  });
+
   const handleLocationSearch = async () => {
     const scopedFilter = normalizeLocationFilter(activeRegion, locationFilter);
     const fullAddress = buildScopedLocationString(activeRegion, scopedFilter);
@@ -1870,7 +1944,7 @@ export default function App() {
                             )}
                             aria-label="Toggle favorite"
                           >
-                            <Heart className={cn("w-4 h-4", favorites.some(f => f.place_id === place.id) && "fill-current")} />
+                            <Heart className={cn("w-4 h-4", favorites.some(f => f.place_id === place.id) ? "fill-red-500 text-red-500" : "text-stone-400")} />
                           </button>
                           <button 
                             onClick={() => openPlaceDetail(place)}
@@ -1998,7 +2072,7 @@ export default function App() {
                               favorites.some(f => f.place_id === place.id) ? "bg-stone-900 text-white" : "hover:bg-stone-50 text-stone-300"
                             )}
                           >
-                            <Heart className={cn("w-4 h-4", favorites.some(f => f.place_id === place.id) && "fill-current")} />
+                            <Heart className={cn("w-4 h-4", favorites.some(f => f.place_id === place.id) ? "fill-red-500 text-red-500" : "text-stone-400")} />
                           </button>
                         </div>
                         <p className="text-xs text-stone-500 line-clamp-2 mt-1">{place.description}</p>
@@ -2221,6 +2295,13 @@ export default function App() {
                               <div className="glass-panel rounded-[1.5rem] border border-white/16 bg-white/10 px-5 py-4 text-white/86">
                                 <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/58">Category</p>
                                 <p className="mt-2 text-sm font-semibold">{recommendationCards[0].category}</p>
+                                <div className="mt-4 flex gap-2">
+                                  <button onClick={() => moveToMapLocation(recommendationCards[0].lat, recommendationCards[0].lng)} className="rounded-full border border-white/20 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">View on map</button>
+                                  <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(recommendationCards[0]))} className="rounded-full border border-white/20 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white inline-flex items-center gap-2">
+                                    <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(recommendationCards[0]).id) ? 'fill-red-500 text-red-500' : 'text-white')} />
+                                    Save
+                                  </button>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -2239,6 +2320,13 @@ export default function App() {
                                 <span className="rounded-full bg-[#f3f4f5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5f6368]">{rec.category}</span>
                               </div>
                               <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja)}</p>
+                              <div className="mt-5 flex flex-wrap gap-2">
+                                <button onClick={() => moveToMapLocation(rec.lat, rec.lng)} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
+                                <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(rec))} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 inline-flex items-center gap-2">
+                                  <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(rec).id) ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
+                                  Save
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -2278,17 +2366,24 @@ export default function App() {
                                   <div className="h-full rounded-full bg-stone-900" style={{ width: `${trend.popularity}%` }} />
                                 </div>
                               </div>
-                              {trend.source_url && (
-                                <a
-                                  href={trend.source_url}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-stone-900 hover:opacity-80"
-                                >
-                                  <ExternalLink className="h-3.5 w-3.5" />
-                                  {t.source}
-                                </a>
-                              )}
+                              <div className="mt-4 flex flex-wrap gap-2">
+                                <button onClick={() => moveToMapLocation(activeRegion.mapCenter[0], activeRegion.mapCenter[1])} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
+                                <button onClick={() => toggleAiFavorite(makeTrendFavorite(trend))} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 inline-flex items-center gap-2">
+                                  <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeTrendFavorite(trend).id) ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
+                                  Save
+                                </button>
+                                {trend.source_url && (
+                                  <a
+                                    href={trend.source_url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="inline-flex items-center gap-2 rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 hover:opacity-80"
+                                  >
+                                    <ExternalLink className="h-3.5 w-3.5" />
+                                    {t.source}
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -2408,6 +2503,26 @@ export default function App() {
                           <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Favorites</p>
                           <p className="mt-2 font-semibold text-[#191c1d]">{favorites.length} saved spots</p>
                         </div>
+                        <div className="rounded-[1.5rem] border border-stone-200 bg-white p-5 md:col-span-2">
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-[#7c7f82]">AI SAVED</p>
+                          <p className="mt-2 font-semibold text-[#191c1d]">{aiFavorites.length} saved recommendation / trend items</p>
+                          <div className="mt-4 space-y-3">
+                            {aiFavorites.slice(0, 8).map((item) => (
+                              <div key={item.id} className="rounded-[1.25rem] border border-stone-200 bg-stone-50 p-4">
+                                <div className="flex items-start justify-between gap-3">
+                                  <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#7c7f82]">{item.type}</p>
+                                    <p className="mt-1 font-semibold text-[#191c1d]">{item.title}</p>
+                                    <p className="mt-1 text-xs text-[#5f6368]">{item.locationLabel}</p>
+                                  </div>
+                                  <button onClick={() => moveToMapLocation(item.lat, item.lng)} className="rounded-full border border-stone-200 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
+                                </div>
+                                <p className="mt-3 text-sm leading-6 text-[#5f6368]">{item.description}</p>
+                              </div>
+                            ))}
+                            {aiFavorites.length === 0 && <p className="text-sm text-[#7c7f82]">Saved recommendations and trends will appear here.</p>}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2467,7 +2582,7 @@ export default function App() {
           onClick={() => setActiveTab('ai')}
           className={cn('group flex flex-col items-center justify-center transition-colors', activeTab === 'ai' ? 'text-stone-900' : 'text-zinc-400 hover:text-stone-700')}
         >
-          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'ai' ? 'bg-stone-900 text-white shadow-lg shadow-stone-900/15' : 'bg-transparent')}>
+          <span className={cn('flex h-10 w-10 items-center justify-center rounded-full transition-all', activeTab === 'ai' ? 'bg-stone-100 text-stone-900' : 'bg-transparent')}>
             <Sparkles className="h-5 w-5" />
           </span>
           <span className="mt-1 font-['Inter'] text-[10px] font-bold uppercase tracking-widest">AI</span>
@@ -2499,9 +2614,9 @@ export default function App() {
                 <div className="text-sm font-black tracking-tight text-stone-900">MILZ</div>
                 <button
                   onClick={() => selectedPlace && handleToggleFavorite(selectedPlace.id)}
-                  className={cn('flex h-9 w-9 items-center justify-center rounded-full border transition-colors', selectedPlaceIsFavorite ? 'border-stone-900 bg-stone-900 text-white' : 'border-stone-200 bg-white text-stone-700')}
+                  className={cn('flex h-9 w-9 items-center justify-center rounded-full border transition-colors', selectedPlaceIsFavorite ? 'border-red-500 bg-red-50 text-red-600' : 'border-stone-200 bg-white text-stone-700')}
                 >
-                  <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite && 'fill-current')} />
+                  <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
                 </button>
               </header>
 
@@ -2601,7 +2716,7 @@ export default function App() {
                       onClick={() => selectedPlace && handleToggleFavorite(selectedPlace.id)}
                       className="mt-6 inline-flex items-center gap-2 text-sm font-black uppercase tracking-[0.18em] text-stone-900"
                     >
-                      <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite && 'fill-current')} />
+                      <Heart className={cn('h-4 w-4', selectedPlaceIsFavorite ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
                       {selectedPlaceIsFavorite ? 'Saved to Favorites' : 'Add to Favorites'}
                     </button>
                   </div>
