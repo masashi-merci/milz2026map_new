@@ -44,7 +44,7 @@ type TrendFeedItem = {
   sourceUrl: string;
 };
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const RECOMMEND_TTL = 60 * 60 * 24 * 14;
 const TREND_TTL = 60 * 60 * 24;
 
@@ -263,41 +263,34 @@ const buildTrendSearchQueries = (location: string, category: string) => {
 const trendReasonFromKeyword = (title: string, location: string) => {
   const value = normalize(title);
   const scope = location.trim();
-  const mentionsScope = normalize(scope).split(' ').some((part) => part.length >= 3 && value.includes(part));
 
-  if (/桜|sakura|cherry blossom|紅葉|autumn leaves|christmas|イルミ|illumination|hanami|festival|祭り|花火/.test(value)) {
+  if (/桜|sakura|cherry blossom|紅葉|autumn leaves|christmas|イルミ|illumination|hanami|festival|祭り|花火|ライトアップ/.test(value)) {
     return {
-      ja: `${scope} 周辺では季節イベントや見頃の時期になると、行く前に混雑・見頃・撮影場所・アクセスをまとめて調べる動きが増えます。このワードは、まさにその事前確認の流れで検索が伸びている可能性が高いです。`,
-      en: `Searches for this topic likely rise around ${scope} when seasonal events or peak viewing periods push people to check timing, access, and nearby plans.`
+      ja: `${scope} でこのワードが検索されている背景として、季節の見頃やイベント時期が近づき、行く日程を決める前に「今どうなっているか」「混雑するか」「写真を撮るならどこが良いか」を確認する人が増えている可能性が高いです。現地へ行く直前の下調べ需要が強いタイプです。`,
+      en: `This topic is likely rising around ${scope} because people are checking seasonal timing, crowd levels, and photo-worthy moments before deciding when to go.`
     };
   }
-  if (/ランチ|dinner|lunch|cafe|カフェ|coffee|restaurant|グルメ|food|ramen|居酒屋|brunch|dessert/.test(value)) {
+  if (/ランチ|dinner|lunch|cafe|カフェ|coffee|restaurant|グルメ|food|ramen|居酒屋|brunch|dessert|人気店|食べ歩き/.test(value)) {
     return {
-      ja: `${scope} に行く人が、現地でどこに入るかを比較する文脈で検索している可能性が高いです。特に来訪直前や当日の「近くで良い店を探したい」という温度感に近く、回遊導線の中で一緒に調べられています。`,
-      en: `This is likely being searched by people heading to ${scope} who are comparing where to eat or stop nearby, often with near-term intent.`
+      ja: `${scope} でこのワードが検索される背景として、現地でどこに入るかを当日または直前に比較している人が多いと考えられます。特に「近くで外さない店を知りたい」「混雑前に候補を決めたい」という実用的な検索意図が強いワードです。`,
+      en: `This is likely being searched because people heading to ${scope} want to compare reliable nearby food or café options shortly before visiting.`
     };
   }
-  if (/hotel|宿|旅館|stay|airbnb|観光|itinerary|model course|アクセス|how to get|station|駅|parking|駐車場/.test(value)) {
+  if (/hotel|宿|旅館|stay|airbnb|観光|itinerary|model course|アクセス|how to get|station|駅|parking|駐車場|徒歩|行き方/.test(value)) {
     return {
-      ja: `${scope} への来訪計画とセットで検索されている可能性が高い話題です。宿泊、移動、最寄り駅、駐車場、回り方などの実用情報を確認する流れで需要が伸びています。`,
-      en: `This likely trends with ${scope} because people are planning routes, stays, transport, or other practical visit logistics.`
+      ja: `${scope} でこのワードが伸びる背景には、訪問計画そのものがあります。宿泊、移動、最寄り駅、徒歩導線、駐車場などを事前に確認しながら、現地での動き方を固めようとしている検索です。`,
+      en: `This likely rises because people planning a visit to ${scope} are checking routes, transport, parking, or stay-related logistics before they go.`
     };
   }
-  if (/open|opening|new|新店|popup|limited|限定|event|live|展覧会|展示|コラボ|release|発売/.test(value)) {
+  if (/open|opening|new|新店|popup|limited|限定|event|live|展覧会|展示|コラボ|release|発売|話題|人気/.test(value)) {
     return {
-      ja: `${scope} 周辺で新規オープン、期間限定企画、ライブ、展示、コラボなど「今だけ」の動きがある時に検索されやすいワードです。話題性が短期的に高まりやすく、SNSやメディア露出と一緒に伸びている可能性があります。`,
-      en: `This likely rises around ${scope} when openings, limited events, live shows, or media exposure create short-term attention.`
-    };
-  }
-  if (mentionsScope) {
-    return {
-      ja: `${scope} そのものを含む検索で、現地の行き先選びや直前確認の需要が高まっていると考えられます。周辺で「何をするか」「どこへ行くか」を決める段階で検索されている可能性が高いです。`,
-      en: `Because this query directly mentions ${scope}, it likely reflects active planning around what to do or where to go nearby.`
+      ja: `${scope} でこのワードが検索される背景として、新店オープン、期間限定企画、コラボ、展示、メディア露出などで短期的に注目が高まっている可能性があります。「今行く価値があるか」を判断するための検索として動いているワードです。`,
+      en: `This topic is probably being searched because a new opening, limited event, collaboration, or media exposure has made it newly relevant around ${scope}.`
     };
   }
   return {
-    ja: `${scope} を調べる人が一緒に検索している関連ワードです。比較検討、現地での意思決定、または最近の話題化によって検索が伸びている可能性が高く、${scope} 周辺の行動文脈とつながって見られます。`,
-    en: `This appears to be a related search around ${scope}, likely driven by comparison, near-term decision making, or recent local attention.`
+    ja: `${scope} でこのワードが検索される背景として、その周辺での行き先選びや比較検討が進んでいる可能性があります。実際に訪れる前に「何があるか」「今どこが注目されているか」を確かめる文脈で検索されていると考えられます。`,
+    en: `This appears to be rising because people around ${scope} are comparing options and checking what is currently getting attention before visiting.`
   };
 };
 
@@ -346,7 +339,45 @@ const parseModelJson = (raw: string) => {
     const slice = text.slice(start, end + 1);
     try { return JSON.parse(slice); } catch {}
   }
-  throw new Error('Model returned non-JSON output');
+  return null;
+};
+
+
+const extractLocationTokens = (location: string) => normalize(location)
+  .split(' ')
+  .map((part) => part.trim())
+  .filter((part) => part.length >= 2)
+  .filter((part) => !['japan', 'kyoto', 'tokyo', 'seoul', 'south', 'korea', 'usa', 'new', 'york', '日本', '韓国', 'アメリカ', '東京都', '京都府', 'ソウル特別市', 'ニューヨーク州'].includes(part));
+
+const includesAnyToken = (value: string, tokens: string[]) => tokens.some((token) => token && normalize(value).includes(token));
+
+const buildLocalTrendSeedQueries = (location: string, category: string) => {
+  const categoryName = categoryLabel(category);
+  const commonJa = ['観光', 'ランチ', 'カフェ', 'アクセス', 'イベント', '人気', '話題'];
+  const commonEn = ['things to do', 'cafe', 'food', 'event', 'access', 'popular'];
+  const categoryExtras: Record<string, string[]> = {
+    cafe: ['カフェ', 'coffee', 'モーニング'],
+    restaurant: ['ランチ', 'ディナー', 'グルメ'],
+    shopping: ['買い物', 'popup', 'ショップ'],
+    park: ['散歩', '景色', '桜'],
+    transit: ['アクセス', '駅', '行き方'],
+    all: [],
+  };
+  const extras = categoryExtras[categoryName] || [];
+  return [...new Set([location, ...commonJa.map((x) => `${location} ${x}`), ...commonEn.map((x) => `${location} ${x}`), ...extras.map((x) => `${location} ${x}`)])];
+};
+
+const makeLocalCandidateTitles = (location: string, category: string) => {
+  const categoryName = categoryLabel(category);
+  const sets: Record<string, string[]> = {
+    cafe: ['カフェ', 'モーニング', 'コーヒー', '人気カフェ', '夜カフェ'],
+    restaurant: ['ランチ', 'ディナー', '食べ歩き', '人気店', '予約'],
+    shopping: ['買い物', 'popup', '限定', '新店', 'お土産'],
+    park: ['散歩', '桜', '紅葉', '景色', 'ライトアップ'],
+    transit: ['アクセス', '駅', '駐車場', '行き方', '徒歩'],
+    all: ['観光', 'ランチ', 'カフェ', 'アクセス', '人気', 'イベント', '見どころ', '新店', '散歩', '夜']
+  };
+  return (sets[categoryName] || sets.all).map((suffix) => `${location} ${suffix}`);
 };
 
 const scoreSuggestion = (suggestion: string, location: string) => {
@@ -363,18 +394,20 @@ const scoreSuggestion = (suggestion: string, location: string) => {
 };
 
 const buildLocationAwareTrendItems = async (region: RegionConfig, location: string, category: string): Promise<TrendItem[]> => {
-  const queries = buildTrendSearchQueries(location, category);
+  const queries = [...buildTrendSearchQueries(location, category), ...buildLocalTrendSeedQueries(location, category)];
+  const locationTokens = extractLocationTokens(location);
   const bag: string[] = [];
   for (const query of queries) {
     const suggestions = await fetchAutocompleteSuggestions(query, region);
     bag.push(...suggestions);
-    if (bag.length >= 40) break;
+    if (bag.length >= 80) break;
   }
 
   const seen = new Set<string>();
   const deduped = bag
     .map((item) => item.trim())
-    .filter(Boolean)
+    .filter((item) => item.length >= 2)
+    .filter((item) => !/^[0-9\-]+$/.test(item))
     .filter((item) => {
       const key = normalize(item);
       if (seen.has(key)) return false;
@@ -382,23 +415,31 @@ const buildLocationAwareTrendItems = async (region: RegionConfig, location: stri
       return true;
     });
 
-  const ranked = deduped
-    .map((title) => ({ title, score: scoreSuggestion(title, location) }))
-    .sort((a, b) => b.score - a.score || a.title.length - b.title.length)
-    .slice(0, 10)
-    .map((item, index) => ({
-      topic_ja: item.title,
-      topic_en: item.title,
-      keyword_ja: item.title,
-      keyword_en: item.title,
-      description_ja: trendReasonFromKeyword(item.title, location).ja,
-      description_en: trendReasonFromKeyword(item.title, location).en,
+  const localOnly = deduped.filter((item) => includesAnyToken(item, locationTokens) || normalize(item).includes(normalize(location)));
+  const prepared = (localOnly.length ? localOnly : deduped).slice(0, 20);
+  const sourceTitles = [...prepared];
+
+  for (const fallbackTitle of makeLocalCandidateTitles(location, category)) {
+    if (sourceTitles.length >= 10) break;
+    const key = normalize(fallbackTitle);
+    if (sourceTitles.some((item) => normalize(item) == key)) continue;
+    sourceTitles.push(fallbackTitle);
+  }
+
+  return sourceTitles.slice(0, 10).map((title, index) => {
+    const reason = trendReasonFromKeyword(title, location);
+    return {
+      topic_ja: title,
+      topic_en: title,
+      keyword_ja: title,
+      keyword_en: title,
+      description_ja: reason.ja,
+      description_en: reason.en,
       category: categoryLabel(category).toUpperCase() === 'ALL' ? 'TREND' : categoryLabel(category).toUpperCase(),
       popularity: Math.max(58, 96 - index * 4),
-      source_url: `https://www.google.com/search?q=${encodeURIComponent(item.title)}`,
-    }));
-
-  return ranked;
+      source_url: `https://www.google.com/search?q=${encodeURIComponent(title)}`,
+    };
+  });
 };
 
 const fetchTrendFeed = async (region: RegionConfig): Promise<TrendFeedItem[]> => {
@@ -500,8 +541,8 @@ const generateRecommendations = async (ai: GoogleGenAI, location: string, catego
   if (!text) return buildRecommendationFallback(region);
   let raw: Array<Record<string, unknown>> = [];
   try {
-    const parsed = parseModelJson(text) as { recommendations?: Array<Record<string, unknown>> };
-    raw = Array.isArray(parsed.recommendations) ? parsed.recommendations : [];
+    const parsed = parseModelJson(text) as { recommendations?: Array<Record<string, unknown>> } | null;
+    raw = Array.isArray(parsed?.recommendations) ? parsed.recommendations : [];
   } catch {
     raw = extractRecommendationObjects(text);
   }
@@ -610,19 +651,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
 
     const locationAwareTrends = await buildLocationAwareTrendItems(region, location, category);
     let resolvedTrends: TrendItem[];
-    if (locationAwareTrends.length >= 5) {
-      const feed = await fetchTrendFeed(region).catch(() => [] as TrendFeedItem[]);
-      const fallback = feed.length ? await summarizeTrends(ai, region, location, category, feed) : [];
-      const merged = [...locationAwareTrends];
-      const seen = new Set(merged.map((item) => normalize(item.topic_en || item.topic_ja)));
-      for (const item of fallback) {
-        const key = normalize(item.topic_en || item.topic_ja);
-        if (seen.has(key)) continue;
-        merged.push(item);
-        seen.add(key);
-        if (merged.length >= 10) break;
-      }
-      resolvedTrends = merged.slice(0, 10);
+    if (locationAwareTrends.length >= 3) {
+      resolvedTrends = locationAwareTrends.slice(0, 10);
     } else {
       const feed = await fetchTrendFeed(region).catch(() => [] as TrendFeedItem[]);
       resolvedTrends = feed.length ? await summarizeTrends(ai, region, location, category, feed) : buildTrendFallback(region, []);
