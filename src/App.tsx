@@ -64,7 +64,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const AI_CACHE_PREFIX = 'milz_ai_cache_v6';
+const AI_CACHE_PREFIX = 'milz_ai_cache_v7';
 const GEO_CACHE_PREFIX = 'milz_geo_cache_v1';
 
 function normalizeCacheText(value: string) {
@@ -183,6 +183,15 @@ type AiFavorite = {
   lng?: number;
   source_url?: string;
   created_at: string;
+};
+
+type AIMapPin = {
+  id: string;
+  title: string;
+  description: string;
+  lat: number;
+  lng: number;
+  category?: string;
 };
 
 function curatedRecommendationFallback(location: string): RecommendationCard[] {
@@ -308,9 +317,9 @@ const REGION_PRESETS = {
   ny: {
     key: 'ny',
     name: 'New York',
-    country: 'USA',
-    prefecture: 'New York',
-    municipality: 'Manhattan',
+    country: 'アメリカ',
+    prefecture: 'ニューヨーク州',
+    municipality: 'マンハッタン',
     mapCenter: [40.7831, -73.9712] as [number, number],
     mapZoom: 12,
     lockCountry: true,
@@ -319,9 +328,9 @@ const REGION_PRESETS = {
   tokyo: {
     key: 'tokyo',
     name: 'Tokyo',
-    country: 'Japan',
-    prefecture: 'Tokyo',
-    municipality: 'Shibuya',
+    country: '日本',
+    prefecture: '東京都',
+    municipality: '渋谷',
     mapCenter: [35.6595, 139.7005] as [number, number],
     mapZoom: 12,
     lockCountry: true,
@@ -330,9 +339,9 @@ const REGION_PRESETS = {
   kyoto: {
     key: 'kyoto',
     name: 'Kyoto',
-    country: 'Japan',
-    prefecture: 'Kyoto',
-    municipality: 'Higashiyama',
+    country: '日本',
+    prefecture: '京都府',
+    municipality: '東山',
     mapCenter: [35.0037, 135.7788] as [number, number],
     mapZoom: 12,
     lockCountry: true,
@@ -341,9 +350,9 @@ const REGION_PRESETS = {
   korea: {
     key: 'korea',
     name: 'Seoul',
-    country: 'South Korea',
-    prefecture: 'Seoul',
-    municipality: 'Jung-gu',
+    country: '韓国',
+    prefecture: 'ソウル特別市',
+    municipality: '中区',
     mapCenter: [37.5665, 126.9780] as [number, number],
     mapZoom: 12,
     lockCountry: true,
@@ -376,8 +385,10 @@ const UI_TEXT = {
     aiSubtitle: '実在スポットの推薦と、実際に検索されている旬の話題を表示します。',
     locationFilter: 'ロケーションフィルター',
     locationNote: 'Region を切り替えると、Map と AI の対象地域も切り替わります。',
-    region: 'Region',
-    cityArea: 'City / Area',
+    region: '地域',
+    countryLabel: '国',
+    prefectureLabel: '都道府県 / 州',
+    cityArea: '市区町村 / エリア',
     addressOptional: '住所・ランドマーク（任意）',
     recommend: 'RECOMMEND',
     trends: 'TRENDS',
@@ -403,8 +414,8 @@ const UI_TEXT = {
     aiSubtitle: 'Shows real place recommendations and search-driven local trends.',
     locationFilter: 'Location Filter',
     locationNote: 'Changing the region also switches the map and AI target area.',
-    region: 'Region',
-    cityArea: 'City / Area',
+    region: '地域',
+    cityArea: '市区町村 / エリア',
     addressOptional: 'Address or landmark (optional)',
     recommend: 'RECOMMEND',
     trends: 'TRENDS',
@@ -519,6 +530,7 @@ export default function App() {
   const [aiMode, setAiMode] = useState<'recommend' | 'trend'>('recommend');
   const [aiTrendCategory, setAiTrendCategory] = useState('all');
   const [aiError, setAiError] = useState('');
+  const [aiMapPin, setAiMapPin] = useState<AIMapPin | null>(null);
 
   useEffect(() => {
     setLocationFilter(normalizeLocationFilter(activeRegion, {
@@ -530,6 +542,7 @@ export default function App() {
     setAiResults(null);
     setAiError('');
     setSelectedPlace(null);
+    setAiMapPin(null);
   }, [activeRegion]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [debugLogs, setDebugLogs] = useState<string[]>([]);
@@ -1377,13 +1390,22 @@ export default function App() {
       : [item, ...current]);
   };
 
-  const moveToMapLocation = (lat?: number, lng?: number) => {
+  const moveToMapLocation = (lat?: number, lng?: number, pin?: { title?: string; description?: string; category?: string }) => {
     setActiveTab('map');
-    const targetLat = typeof lat === 'number' && !Number.isNaN(lat) ? lat : activeRegion.mapCenter[0];
-    const targetLng = typeof lng === 'number' && !Number.isNaN(lng) ? lng : activeRegion.mapCenter[1];
+    const hasCoords = typeof lat === 'number' && !Number.isNaN(lat) && typeof lng === 'number' && !Number.isNaN(lng);
+    const targetLat = hasCoords ? lat! : activeRegion.mapCenter[0];
+    const targetLng = hasCoords ? lng! : activeRegion.mapCenter[1];
+    setAiMapPin({
+      id: `${pin?.title || 'selected'}:${targetLat}:${targetLng}`,
+      title: pin?.title || 'Selected location',
+      description: pin?.description || 'AI が選んだ場所です。',
+      lat: targetLat,
+      lng: targetLng,
+      category: pin?.category,
+    });
     setTimeout(() => {
-      mapRef.current?.flyTo([targetLat, targetLng], typeof lat === 'number' && typeof lng === 'number' ? 15 : activeRegion.mapZoom);
-    }, 150);
+      mapRef.current?.flyTo([targetLat, targetLng], hasCoords ? 16 : activeRegion.mapZoom);
+    }, 180);
   };
 
   const makeRecommendationFavorite = (rec: RecommendationCard): AiFavorite => ({
@@ -1830,7 +1852,7 @@ export default function App() {
                       <div className="grid grid-cols-1 gap-3">
                         <input
                           type="text"
-                          placeholder="Country"
+                          placeholder={t.countryLabel}
                           value={locationFilter.country}
                           readOnly
                           className="w-full px-4 py-3 bg-stone-100 border border-stone-100 rounded-2xl text-sm text-stone-500 cursor-not-allowed"
@@ -1838,7 +1860,7 @@ export default function App() {
                         <div className="grid grid-cols-2 gap-3">
                           <input
                             type="text"
-                            placeholder="State"
+                            placeholder={t.prefectureLabel}
                             value={locationFilter.prefecture}
                             readOnly
                             className="w-full px-4 py-3 bg-stone-100 border border-stone-100 rounded-2xl text-sm text-stone-500 cursor-not-allowed"
@@ -1853,7 +1875,7 @@ export default function App() {
                         </div>
                         <input
                           type="text"
-                          placeholder="Detailed Address"
+                          placeholder={t.addressOptional}
                           value={locationFilter.address}
                           onChange={(e) => setLocationFilter(prev => ({ ...prev, address: e.target.value }))}
                           className="w-full px-4 py-3 bg-stone-50 border border-stone-100 rounded-2xl text-sm focus:outline-none"
@@ -1865,7 +1887,7 @@ export default function App() {
                           }}
                           className="w-full py-3 text-[10px] font-black text-stone-400 hover:text-stone-900 transition-colors"
                         >
-                          CLEAR ALL FILTERS
+                          フィルターをクリア
                         </button>
                         <button
                           onClick={handleLocationSearch}
@@ -1873,7 +1895,7 @@ export default function App() {
                           className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black text-xs active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                         >
                           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                          GO TO LOCATION
+                          地図でこの住所へ移動
                         </button>
                       </div>
                     </motion.div>
@@ -1976,6 +1998,22 @@ export default function App() {
                     </Popup>
                   </Marker>
                 ))}
+
+
+                {aiMapPin && (
+                  <Marker position={[aiMapPin.lat, aiMapPin.lng]}>
+                    <Popup className="custom-popup">
+                      <div className="min-w-[220px] space-y-2 p-3">
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.24em] text-stone-400">AI PIN</p>
+                          <h3 className="mt-1 text-base font-black text-stone-900">{aiMapPin.title}</h3>
+                          {aiMapPin.category && <p className="mt-1 text-[11px] font-semibold text-stone-500">{aiMapPin.category}</p>}
+                        </div>
+                        <p className="text-xs leading-5 text-stone-600">{aiMapPin.description}</p>
+                      </div>
+                    </Popup>
+                  </Marker>
+                )}
 
                 {newPlacePos && (
                   <Marker 
@@ -2175,11 +2213,11 @@ export default function App() {
 
                   <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Country</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">{t.countryLabel}</p>
                       <p className="mt-2 font-semibold text-[#191c1d]">{locationFilter.country}</p>
                     </div>
                     <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
-                      <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">State / Prefecture</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">{t.prefectureLabel}</p>
                       <p className="mt-2 font-semibold text-[#191c1d]">{locationFilter.prefecture}</p>
                     </div>
                     <label className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
@@ -2296,7 +2334,7 @@ export default function App() {
                                 <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/58">Category</p>
                                 <p className="mt-2 text-sm font-semibold">{recommendationCards[0].category}</p>
                                 <div className="mt-4 flex gap-2">
-                                  <button onClick={() => moveToMapLocation(recommendationCards[0].lat, recommendationCards[0].lng)} className="rounded-full border border-white/20 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">View on map</button>
+                                  <button onClick={() => moveToMapLocation(recommendationCards[0].lat, recommendationCards[0].lng, { title: uiLanguage === 'ja' ? (recommendationCards[0].name_ja || recommendationCards[0].name_en) : (recommendationCards[0].name_en || recommendationCards[0].name_ja), description: uiLanguage === 'ja' ? (recommendationCards[0].reason_ja || recommendationCards[0].reason_en) : (recommendationCards[0].reason_en || recommendationCards[0].reason_ja), category: recommendationCards[0].category })} className="rounded-full border border-white/20 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">View on map</button>
                                   <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(recommendationCards[0]))} className="rounded-full border border-white/20 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white inline-flex items-center gap-2">
                                     <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(recommendationCards[0]).id) ? 'fill-red-500 text-red-500' : 'text-white')} />
                                     Save
@@ -2321,7 +2359,7 @@ export default function App() {
                               </div>
                               <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja)}</p>
                               <div className="mt-5 flex flex-wrap gap-2">
-                                <button onClick={() => moveToMapLocation(rec.lat, rec.lng)} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
+                                <button onClick={() => moveToMapLocation(rec.lat, rec.lng, { title: uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja), description: uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja), category: rec.category })} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
                                 <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(rec))} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 inline-flex items-center gap-2">
                                   <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(rec).id) ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
                                   Save
@@ -2367,7 +2405,7 @@ export default function App() {
                                 </div>
                               </div>
                               <div className="mt-4 flex flex-wrap gap-2">
-                                <button onClick={() => moveToMapLocation(activeRegion.mapCenter[0], activeRegion.mapCenter[1])} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
+                                <button onClick={() => moveToMapLocation(activeRegion.mapCenter[0], activeRegion.mapCenter[1], { title: uiLanguage === 'ja' ? (trend.topic_ja || trend.keyword_ja || trend.topic_en) : (trend.topic_en || trend.keyword_en || trend.topic_ja), description: uiLanguage === 'ja' ? trend.description_ja : trend.description_en, category: trend.category })} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
                                 <button onClick={() => toggleAiFavorite(makeTrendFavorite(trend))} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 inline-flex items-center gap-2">
                                   <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeTrendFavorite(trend).id) ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
                                   Save
@@ -2396,7 +2434,7 @@ export default function App() {
                       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Region Summary</p>
                       <div className="mt-4 space-y-4">
                         <div className="rounded-[1.4rem] bg-[#f8f9fa] px-4 py-4">
-                          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Country</p>
+                          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">{t.countryLabel}</p>
                           <p className="mt-2 font-semibold text-[#191c1d]">{locationFilter.country}</p>
                         </div>
                         <div className="rounded-[1.4rem] bg-[#f8f9fa] px-4 py-4">
