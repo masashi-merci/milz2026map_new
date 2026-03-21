@@ -44,7 +44,7 @@ type TrendFeedItem = {
   sourceUrl: string;
 };
 
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const RECOMMEND_TTL = 60 * 60 * 24 * 14;
 const TREND_TTL = 60 * 60 * 24;
 
@@ -81,6 +81,11 @@ const REGIONS: RegionConfig[] = [
       { name_ja: 'チェルシーマーケット', name_en: 'Chelsea Market', reason_ja: '食事と買い物を一度にまとめやすく、短時間でも満足度を作りやすいです。', reason_en: 'A reliable stop that combines food and browsing in a compact route.', category: 'RESTAURANT', lat: 40.7424, lng: -74.0060 },
       { name_ja: 'ハイライン', name_en: 'The High Line', reason_ja: 'チェルシーやハドソンヤーズとつなぎやすい散策スポットです。', reason_en: 'A flexible walking stop that pairs naturally with Chelsea and Hudson Yards.', category: 'PARK', lat: 40.7480, lng: -74.0048 },
       { name_ja: 'ソーホー', name_en: 'SoHo', reason_ja: '買い物と街歩きをまとめやすく、定番として非常に使いやすいです。', reason_en: 'A practical district for shopping and city walking.', category: 'SHOPPING', lat: 40.7233, lng: -74.0020 },
+      { name_ja: 'ロックフェラー・センター', name_en: 'Rockefeller Center', reason_ja: '展望・買い物・季節イベントをまとめやすいミッドタウンの定番です。', reason_en: 'A reliable Midtown destination for views, shopping, and seasonal events.', category: 'LANDMARK', lat: 40.7587, lng: -73.9787 },
+      { name_ja: 'メトロポリタン美術館', name_en: 'The Metropolitan Museum of Art', reason_ja: '文化体験を入れたいときに強く、セントラルパークと合わせやすいです。', reason_en: 'A strong cultural stop that pairs naturally with Central Park.', category: 'MUSEUM', lat: 40.7794, lng: -73.9632 },
+      { name_ja: 'ブライアントパーク', name_en: 'Bryant Park', reason_ja: '休憩や街歩きに組み込みやすい、ミッドタウンの使い勝手の良い公園です。', reason_en: 'A convenient Midtown park for a short break and surrounding routes.', category: 'PARK', lat: 40.7536, lng: -73.9832 },
+      { name_ja: 'ニューヨーク近代美術館', name_en: 'Museum of Modern Art', reason_ja: '短時間でも見どころを作りやすい代表的な美術館です。', reason_en: 'A practical museum stop with strong highlights even on a compact route.', category: 'MUSEUM', lat: 40.7614, lng: -73.9776 },
+      { name_ja: 'ブルックリン・ブリッジ・パーク', name_en: 'Brooklyn Bridge Park', reason_ja: '景色と散策を楽しみやすく、写真映えも分かりやすいです。', reason_en: 'A visually strong waterfront stop for skyline views and walking.', category: 'PARK', lat: 40.7003, lng: -73.9967 },
     ],
   },
   {
@@ -96,6 +101,11 @@ const REGIONS: RegionConfig[] = [
       { name_ja: '浅草寺', name_en: 'Senso-ji', reason_ja: '東京らしさを感じやすく、周辺散策とも相性が良いです。', reason_en: 'A classic Tokyo landmark that works well with nearby walking routes.', category: 'LANDMARK', lat: 35.7148, lng: 139.7967 },
       { name_ja: '東京ミッドタウン', name_en: 'Tokyo Midtown', reason_ja: '六本木で食事や買い物をまとめやすい大型施設です。', reason_en: 'A flexible Roppongi stop for dining and shopping.', category: 'SHOPPING', lat: 35.6654, lng: 139.7310 },
       { name_ja: '中目黒', name_en: 'Nakameguro', reason_ja: 'カフェや散策目的で使いやすく、雰囲気の良さも分かりやすいエリアです。', reason_en: 'An easy district for café stops and relaxed city walking.', category: 'CAFE', lat: 35.6442, lng: 139.6987 },
+      { name_ja: '東京タワー', name_en: 'Tokyo Tower', reason_ja: '景色目的で選びやすく、東京らしさを感じやすい定番ランドマークです。', reason_en: 'A classic skyline landmark that is easy to add to a Tokyo route.', category: 'LANDMARK', lat: 35.6586, lng: 139.7454 },
+      { name_ja: '東京駅', name_en: 'Tokyo Station', reason_ja: '建築と移動の両面で使いやすく、周辺散策にもつなげやすいです。', reason_en: 'A practical transit and architecture stop that fits many Tokyo routes.', category: 'TRANSIT', lat: 35.6812, lng: 139.7671 },
+      { name_ja: '上野公園', name_en: 'Ueno Park', reason_ja: '美術館や自然を一緒に楽しみやすい広域スポットです。', reason_en: 'A flexible park area that combines nature and nearby museums.', category: 'PARK', lat: 35.7156, lng: 139.7745 },
+      { name_ja: 'GINZA SIX', name_en: 'GINZA SIX', reason_ja: '銀座で買い物と食事をまとめやすい大型商業施設です。', reason_en: 'A practical Ginza destination for shopping and dining.', category: 'SHOPPING', lat: 35.6698, lng: 139.7635 },
+      { name_ja: 'teamLab Planets TOKYO DMM', name_en: 'teamLab Planets TOKYO DMM', reason_ja: '体験型スポットとして印象に残りやすく、旅行導線にも入れやすいです。', reason_en: 'A memorable immersive stop that fits well into a Tokyo visit.', category: 'MUSEUM', lat: 35.6490, lng: 139.7898 },
     ],
   },
   {
@@ -111,6 +121,11 @@ const REGIONS: RegionConfig[] = [
       { name_ja: '錦市場', name_en: 'Nishiki Market', reason_ja: '食べ歩きと中心部散策をまとめやすいです。', reason_en: 'A practical central Kyoto stop for food and browsing.', category: 'RESTAURANT', lat: 35.0050, lng: 135.7641 },
       { name_ja: '嵐山竹林の小径', name_en: 'Arashiyama Bamboo Grove', reason_ja: '景観目的で非常に分かりやすく、嵐山観光の柱になります。', reason_en: 'A visually strong Kyoto highlight that anchors an Arashiyama route.', category: 'PARK', lat: 35.0170, lng: 135.6713 },
       { name_ja: '八坂神社', name_en: 'Yasaka Shrine', reason_ja: '祇園エリアの散策と合わせやすい定番スポットです。', reason_en: 'A practical stop that pairs naturally with Gion walking.', category: 'LANDMARK', lat: 35.0037, lng: 135.7788 },
+      { name_ja: '金閣寺', name_en: 'Kinkaku-ji', reason_ja: '京都らしい景観を感じやすく、初回訪問でも選びやすい名所です。', reason_en: 'A classic Kyoto sight with strong visual appeal for first-time visitors.', category: 'LANDMARK', lat: 35.0394, lng: 135.7292 },
+      { name_ja: '祇園', name_en: 'Gion', reason_ja: '京都らしい街並みを歩きやすく、食事や散策にもつなげやすいです。', reason_en: 'A reliable Kyoto district for walking, dining, and traditional atmosphere.', category: 'DISTRICT', lat: 35.0036, lng: 135.7784 },
+      { name_ja: '京都駅', name_en: 'Kyoto Station', reason_ja: '移動拠点としてだけでなく、建築や買い物面でも使いやすいです。', reason_en: 'A practical transit hub with architecture and shopping value.', category: 'TRANSIT', lat: 34.9858, lng: 135.7588 },
+      { name_ja: '平安神宮', name_en: 'Heian Shrine', reason_ja: '岡崎エリア散策に組み込みやすく、文化寄りのルートに向いています。', reason_en: 'A strong cultural stop that fits an Okazaki walking route.', category: 'LANDMARK', lat: 35.0159, lng: 135.7823 },
+      { name_ja: '哲学の道', name_en: "Philosopher's Path", reason_ja: '静かな散策導線を作りやすく、季節感も出しやすいです。', reason_en: 'A calm Kyoto walking route with clear seasonal appeal.', category: 'PARK', lat: 35.0269, lng: 135.7983 },
     ],
   },
   {
@@ -126,6 +141,11 @@ const REGIONS: RegionConfig[] = [
       { name_ja: '弘大', name_en: 'Hongdae', reason_ja: 'カフェや若者向けショップが多く、街歩きしやすいです。', reason_en: 'A lively area for cafés, indie shops, and casual walking.', category: 'CAFE', lat: 37.5563, lng: 126.9236 },
       { name_ja: '広蔵市場', name_en: 'Gwangjang Market', reason_ja: '韓国らしいローカルフード体験として分かりやすいです。', reason_en: 'A clear local-food stop that works well in Seoul.', category: 'RESTAURANT', lat: 37.5704, lng: 126.9996 },
       { name_ja: 'Nソウルタワー', name_en: 'N Seoul Tower', reason_ja: '景色目的で選びやすい定番の眺望スポットです。', reason_en: 'A classic skyline stop that is easy to include in a Seoul route.', category: 'LANDMARK', lat: 37.5512, lng: 126.9882 },
+      { name_ja: '北村韓屋村', name_en: 'Bukchon Hanok Village', reason_ja: '韓国らしい街並みを歩ける定番エリアで、景福宮ともつなげやすいです。', reason_en: 'A classic walking district that pairs naturally with Gyeongbokgung.', category: 'DISTRICT', lat: 37.5826, lng: 126.9830 },
+      { name_ja: '昌徳宮', name_en: 'Changdeokgung Palace', reason_ja: '歴史体験を追加しやすく、ソウル中心部の観光ルートに組み込みやすいです。', reason_en: 'A practical palace stop for a history-focused central Seoul route.', category: 'LANDMARK', lat: 37.5794, lng: 126.9910 },
+      { name_ja: 'COEX', name_en: 'COEX', reason_ja: '江南エリアで買い物や屋内回遊をしやすい大型施設です。', reason_en: 'A useful Gangnam destination for shopping and indoor browsing.', category: 'SHOPPING', lat: 37.5126, lng: 127.0582 },
+      { name_ja: 'ロッテワールドタワー', name_en: 'Lotte World Tower', reason_ja: '景色と大型商業施設を一緒に楽しみやすいです。', reason_en: 'A flexible skyline and shopping destination in Seoul.', category: 'LANDMARK', lat: 37.5131, lng: 127.1025 },
+      { name_ja: 'ソウルの森', name_en: 'Seoul Forest', reason_ja: '散策や休憩を入れたいときに使いやすい都市公園です。', reason_en: 'A practical city park for walking, relaxing, and nearby cafés.', category: 'PARK', lat: 37.5444, lng: 127.0374 },
     ],
   },
 ];
@@ -140,11 +160,11 @@ const categoryLabel = (category: string) => {
   return 'all';
 };
 
-const buildCacheKey = async (mode: Mode, location: string, category: string) => {
-  const source = `${CACHE_VERSION}|${mode}|${normalize(location)}|${normalize(category || 'general')}`;
+const buildCacheKey = async (mode: Mode, scopeKey: string, category: string) => {
+  const source = `${CACHE_VERSION}|${mode}|${normalize(scopeKey)}|${normalize(category || 'general')}`;
   const bytes = new TextEncoder().encode(source);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('\n');
+  return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
 };
 
 const timeoutFetch = async <T>(promiseFactory: () => Promise<T>, ms: number): Promise<T> => {
@@ -232,7 +252,7 @@ const geocodePlace = async (name: string, region: RegionConfig) => {
 };
 
 const buildTrendFallback = (region: RegionConfig, feed: TrendFeedItem[]): TrendItem[] => {
-  return feed.slice(0, 5).map((item, index) => ({
+  return feed.slice(0, 10).map((item, index) => ({
     topic_ja: item.title,
     topic_en: item.title,
     keyword_ja: item.title,
@@ -245,7 +265,7 @@ const buildTrendFallback = (region: RegionConfig, feed: TrendFeedItem[]): TrendI
   }));
 };
 
-const buildRecommendationFallback = (region: RegionConfig) => region.fallbackRecommendations.slice(0, 5);
+const buildRecommendationFallback = (region: RegionConfig) => region.fallbackRecommendations.slice(0, 10);
 
 const sanitizeRecommendationCategory = (value: string) => {
   const upper = String(value || 'PLACE').trim().toUpperCase();
@@ -257,7 +277,7 @@ const generateRecommendations = async (ai: GoogleGenAI, location: string, catego
     'You are a bilingual local discovery planner.',
     `Location: ${location}.`,
     `Category preference: ${category || 'general'}.`,
-    'Return 8 existing places that a traveler or local can actually visit now.',
+    'Return 10 existing places that a traveler or local can actually visit now.',
     'Do not output generic areas, vague districts, or placeholders.',
     'Every recommendation must be a real place, facility, temple, market, park, museum, station, shopping building, café, or restaurant.',
     'Use concise but meaningful reasons that explain why the place fits the route or intent.',
@@ -321,17 +341,17 @@ const generateRecommendations = async (ai: GoogleGenAI, location: string, catego
       lng: geo.lng,
     });
     seen.add(key);
-    if (validated.length >= 5) break;
+    if (validated.length >= 10) break;
   }
 
-  if (validated.length >= 5) return validated;
+  if (validated.length >= 10) return validated;
   for (const item of buildRecommendationFallback(region)) {
     if (seen.has(normalize(item.name_en))) continue;
     validated.push(item);
     seen.add(normalize(item.name_en));
-    if (validated.length >= 5) break;
+    if (validated.length >= 10) break;
   }
-  return validated.slice(0, 5);
+  return validated.slice(0, 10);
 };
 
 const summarizeTrends = async (ai: GoogleGenAI, region: RegionConfig, location: string, category: string, feed: TrendFeedItem[]): Promise<TrendItem[]> => {
@@ -340,7 +360,7 @@ const summarizeTrends = async (ai: GoogleGenAI, region: RegionConfig, location: 
     'You are a bilingual trend editor for a travel and local discovery app.',
     `Target location: ${location}. Region baseline: ${region.label}. Category preference: ${category || 'general'}.`,
     'Below are actual trending search queries from Google Trends RSS. Keep the core search term recognizable.',
-    'Return exactly 5 items in JSON. topic_ja/topic_en should stay close to the original search term, while description_ja/description_en explain why the term is hot and how it may connect to local discovery.',
+    'Return exactly 10 items in JSON. topic_ja/topic_en should stay close to the original search term, while description_ja/description_en explain why the term is hot and how it may connect to local discovery.',
     'Do not invent fake facilities. Do not convert search terms into placeholders.',
     sourceLines.join('\n'),
   ].join('\n');
@@ -384,7 +404,7 @@ const summarizeTrends = async (ai: GoogleGenAI, region: RegionConfig, location: 
   const raw = Array.isArray(parsed.trends) ? parsed.trends : [];
   const results: TrendItem[] = [];
 
-  for (let index = 0; index < raw.length && results.length < 5; index += 1) {
+  for (let index = 0; index < raw.length && results.length < 10; index += 1) {
     const row = raw[index];
     const source = feed[index] || feed[0];
     const topicJa = String(row.topic_ja || row.keyword_ja || source?.title || '').trim();
@@ -405,7 +425,7 @@ const summarizeTrends = async (ai: GoogleGenAI, region: RegionConfig, location: 
     });
   }
 
-  if (results.length >= 5) return results.slice(0, 5);
+  if (results.length >= 10) return results.slice(0, 10);
   return buildTrendFallback(region, feed);
 };
 
@@ -423,7 +443,10 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const bodyRefresh = Boolean(body?.refresh);
 
     const region = pickRegion(location);
-    const cacheKey = await buildCacheKey(mode, `${region.key}:${location}`, category);
+    const cacheScope = mode === 'recommend'
+      ? `${region.key}|${categoryLabel(category)}`
+      : `${region.key}|${categoryLabel(category)}|trends`;
+    const cacheKey = await buildCacheKey(mode, cacheScope, categoryLabel(category));
     const cacheUrl = `https://edge-cache.local/milz-ai-${cacheKey}`;
     const cache = caches.default;
     const cached = bodyRefresh ? null : await cache.match(cacheUrl);
