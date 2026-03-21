@@ -1467,119 +1467,169 @@ export default function App() {
   // Login Screen
   if (!user) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-stone-50 p-6">
-        <motion.div 
+      <div className="milz-editorial-bg relative flex min-h-screen items-center justify-center overflow-hidden px-6 py-10">
+        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(181,28,0,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(0,106,98,0.18),transparent_28%)]" />
+        <div className="pointer-events-none absolute right-[-8rem] top-[-5rem] h-72 w-72 rounded-full bg-[#b51c00]/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-[-6rem] left-[-4rem] h-72 w-72 rounded-full bg-[#006a62]/10 blur-3xl" />
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md bg-white rounded-[2.5rem] shadow-2xl p-10 text-center space-y-8 border border-stone-100"
+          className="relative z-10 grid w-full max-w-5xl gap-8 lg:grid-cols-[1.1fr_0.9fr]"
         >
-          <div className="flex flex-col items-center gap-6">
-            <div className={cn(
-              "w-20 h-20 rounded-3xl flex items-center justify-center shadow-lg rotate-3 transition-colors duration-500",
-              selectedAuthRole === 'admin' ? "bg-emerald-500 shadow-emerald-500/20" : "bg-blue-500 shadow-blue-500/20"
-            )}>
-              {selectedAuthRole === 'admin' ? <ShieldCheck className="w-12 h-12 text-white" /> : <MapPin className="w-12 h-12 text-white" />}
-            </div>
-            <div>
-              <h1 className="text-4xl font-black tracking-tight text-stone-900">milz</h1>
-              <p className="text-stone-500 mt-2 font-medium">
-                {selectedAuthRole === 'admin' ? 'Admin Portal' : 'Personal Map Bookmark'}
-              </p>
-            </div>
-          </div>
-
-          {/* Role Selector */}
-          <div className="flex p-1 bg-stone-100 rounded-2xl">
-            <button 
-              onClick={() => setSelectedAuthRole('user')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all",
-                selectedAuthRole === 'user' ? "bg-white text-stone-900 shadow-sm" : "text-stone-400 hover:text-stone-600"
-              )}
-            >
-              <UserIcon className="w-4 h-4" />
-              User
-            </button>
-            <button 
-              onClick={() => setSelectedAuthRole('admin')}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 py-3 rounded-xl font-bold transition-all",
-                selectedAuthRole === 'admin' ? "bg-white text-stone-900 shadow-sm" : "text-stone-400 hover:text-stone-600"
-              )}
-            >
-              <ShieldCheck className="w-4 h-4" />
-              Admin
-            </button>
-          </div>
-
-          <AnimatePresence mode="wait">
-            <motion.div
-              key="email"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="space-y-4 text-left"
-            >
-              <form onSubmit={handleEmailAuth} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Email Address</label>
-                  <div className="relative">
-                    <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                    <input 
-                      type="email" 
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="name@example.com"
-                      className="w-full pl-12 pr-4 py-4 bg-stone-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl outline-none transition-all font-medium"
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Password</label>
-                  <div className="relative">
-                    <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-stone-400" />
-                    <input 
-                      type="password" 
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      placeholder="••••••••"
-                      className="w-full pl-12 pr-4 py-4 bg-stone-50 border-2 border-transparent focus:border-emerald-500 focus:bg-white rounded-2xl outline-none transition-all font-medium"
-                    />
-                  </div>
-                </div>
-
-                {authError && (
-                  <p className="text-xs text-red-500 font-bold px-1">{authError}</p>
-                )}
-
-                <button 
-                  type="submit"
-                  className={cn(
-                    "w-full py-5 text-white rounded-2xl font-bold active:scale-95 transition-all shadow-xl",
-                    selectedAuthRole === 'admin' ? "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-600/20" : "bg-stone-900 hover:bg-stone-800 shadow-stone-900/20"
-                  )}
-                >
-                  {authMode === 'signin' ? 'Sign In' : 'Create Account'}
-                </button>
-              </form>
-
-              <div className="flex flex-col gap-2 pt-2">
-                <button 
-                  onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
-                  className="text-xs font-bold text-stone-500 hover:text-stone-900 transition-colors"
-                >
-                  {authMode === 'signin' ? "Don't have an account? Sign Up" : "Already have an account? Sign In"}
-                </button>
+          <div className="hidden rounded-[2rem] bg-[linear-gradient(135deg,rgba(181,28,0,0.96),rgba(217,55,26,0.88))] p-10 text-white shadow-[0_30px_80px_rgba(25,28,29,0.18)] lg:flex lg:flex-col lg:justify-between">
+            <div className="space-y-5">
+              <span className="inline-flex w-fit items-center rounded-full bg-white/14 px-4 py-2 text-[11px] font-black uppercase tracking-[0.28em] text-white/90">
+                Digital Concierge
+              </span>
+              <div className="space-y-4">
+                <h1 className="font-['Plus_Jakarta_Sans'] text-5xl font-extrabold leading-[1.02] tracking-[-0.04em]">
+                  MILZ discovers places with a more editorial feel.
+                </h1>
+                <p className="max-w-xl text-sm leading-7 text-white/84">
+                  Keep the map practical. Make everything around it feel curated, premium, and easier to trust.
+                </p>
               </div>
-            </motion.div>
-          </AnimatePresence>
+            </div>
 
-          <div className="pt-4">
-            <p className="text-[10px] text-stone-300 font-bold">
-              Powered by milztech
-            </p>
+            <div className="space-y-5">
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="glass-panel rounded-[1.5rem] border border-white/20 p-5 text-white shadow-[0_16px_40px_rgba(25,28,29,0.12)] backdrop-blur-xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/70">Recommendation</p>
+                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xl font-bold">Real places only</p>
+                  <p className="mt-2 text-sm text-white/75">14-day cache with meaningful AI reasoning.</p>
+                </div>
+                <div className="glass-panel rounded-[1.5rem] border border-white/20 p-5 text-white shadow-[0_16px_40px_rgba(25,28,29,0.12)] backdrop-blur-xl">
+                  <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/70">Trend</p>
+                  <p className="mt-2 font-['Plus_Jakarta_Sans'] text-xl font-bold">Search-driven</p>
+                  <p className="mt-2 text-sm text-white/75">1-day cache based on currently rising topics.</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 text-white/72">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/14">
+                  {selectedAuthRole === 'admin' ? <ShieldCheck className="h-6 w-6" /> : <MapPin className="h-6 w-6" />}
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/60">Portal</p>
+                  <p className="font-semibold">{selectedAuthRole === 'admin' ? 'Admin management and curation' : 'Personal discovery and saved spots'}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/88 p-8 shadow-[0_30px_80px_rgba(25,28,29,0.12)] backdrop-blur-xl sm:p-10">
+            <div className="mb-8 flex items-center justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#b51c00]">MILZ Access</p>
+                <h2 className="mt-3 font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em] text-[#191c1d]">Sign in</h2>
+                <p className="mt-2 text-sm text-[#5f6368]">
+                  {selectedAuthRole === 'admin' ? 'Manage spots, imagery, and editorial controls.' : 'Save your favorite spots and get AI discovery.'}
+                </p>
+              </div>
+              <div className={cn(
+                "flex h-16 w-16 items-center justify-center rounded-[1.35rem] text-white shadow-[0_14px_34px_rgba(25,28,29,0.12)]",
+                selectedAuthRole === 'admin' ? 'bg-[#006a62]' : 'bg-[linear-gradient(135deg,#b51c00,#d9371a)]'
+              )}>
+                {selectedAuthRole === 'admin' ? <ShieldCheck className="h-8 w-8" /> : <Sparkles className="h-8 w-8" />}
+              </div>
+            </div>
+
+            <div className="mb-7 grid grid-cols-2 gap-3 rounded-[1.35rem] bg-[#f3f4f5] p-1.5">
+              <button
+                onClick={() => setSelectedAuthRole('user')}
+                className={cn(
+                  "rounded-[1rem] px-4 py-3 text-sm font-bold transition-all",
+                  selectedAuthRole === 'user' ? 'bg-white text-[#191c1d] shadow-[0_8px_24px_rgba(25,28,29,0.06)]' : 'text-[#5f6368]'
+                )}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <UserIcon className="h-4 w-4" />
+                  User
+                </span>
+              </button>
+              <button
+                onClick={() => setSelectedAuthRole('admin')}
+                className={cn(
+                  "rounded-[1rem] px-4 py-3 text-sm font-bold transition-all",
+                  selectedAuthRole === 'admin' ? 'bg-white text-[#191c1d] shadow-[0_8px_24px_rgba(25,28,29,0.06)]' : 'text-[#5f6368]'
+                )}
+              >
+                <span className="inline-flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4" />
+                  Admin
+                </span>
+              </button>
+            </div>
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key="email"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-4 text-left"
+              >
+                <form onSubmit={handleEmailAuth} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Email Address</label>
+                    <div className="relative overflow-hidden rounded-[1.25rem] bg-[#f8f9fa]">
+                      <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7c7f82]" />
+                      <input
+                        type="email"
+                        required
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="name@example.com"
+                        className="w-full border-0 bg-transparent py-4 pl-12 pr-4 font-medium outline-none ring-0 placeholder:text-[#9ca0a4] focus:bg-white"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Password</label>
+                    <div className="relative overflow-hidden rounded-[1.25rem] bg-[#f8f9fa]">
+                      <Lock className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#7c7f82]" />
+                      <input
+                        type="password"
+                        required
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="w-full border-0 bg-transparent py-4 pl-12 pr-4 font-medium outline-none ring-0 placeholder:text-[#9ca0a4] focus:bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  {authError && (
+                    <div className="rounded-[1.25rem] bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                      {authError}
+                    </div>
+                  )}
+
+                  <button
+                    type="submit"
+                    className={cn(
+                      "w-full rounded-full px-6 py-4 text-sm font-black text-white shadow-[0_16px_34px_rgba(181,28,0,0.18)] transition-all active:scale-[0.98]",
+                      selectedAuthRole === 'admin' ? 'bg-[#006a62] shadow-[0_16px_34px_rgba(0,106,98,0.18)]' : 'bg-[linear-gradient(135deg,#b51c00,#d9371a)]'
+                    )}
+                  >
+                    {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+                  </button>
+                </form>
+
+                <div className="flex flex-col gap-3 pt-2">
+                  <button
+                    onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+                    className="text-sm font-semibold text-[#5f6368] transition-colors hover:text-[#191c1d]"
+                  >
+                    {authMode === 'signin' ? "Don't have an account? Sign Up" : 'Already have an account? Sign In'}
+                  </button>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            <div className="mt-8 border-t border-[#eceef0] pt-5 text-center text-[11px] font-bold uppercase tracking-[0.28em] text-[#a2a6ab]">
+              Powered by Milztech
+            </div>
           </div>
         </motion.div>
       </div>
@@ -1946,444 +1996,406 @@ export default function App() {
           )}
 
           {activeTab === 'ai' && (
-            <motion.div 
+            <motion.div
               key="ai"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="h-full overflow-y-auto p-6 space-y-8 bg-stone-50"
+              className="milz-editorial-bg h-full overflow-y-auto px-6 pb-36 pt-6"
             >
-              <div className="space-y-2">
-                <h2 className="text-3xl font-black text-stone-900 flex items-center gap-3">
-                  {t.aiTitle}
-                  <Sparkles className="w-6 h-6 text-emerald-500" />
-                </h2>
-              </div>
+              <div className="mx-auto max-w-6xl space-y-8">
+                <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#b51c00,#d9371a)] px-7 py-8 text-white shadow-[0_24px_60px_rgba(25,28,29,0.14)]">
+                  <div className="pointer-events-none absolute right-0 top-0 h-40 w-40 translate-x-8 -translate-y-8 rounded-full bg-white/10 blur-3xl" />
+                  <div className="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+                    <div className="max-w-2xl space-y-3">
+                      <p className="text-[10px] font-black uppercase tracking-[0.32em] text-white/72">MILZ AI Discovery</p>
+                      <h2 className="font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em] text-white md:text-5xl">
+                        Curated recommendations and trends around your selected region.
+                      </h2>
+                      <p className="max-w-xl text-sm leading-7 text-white/84">
+                        Keep the map practical. Make discovery feel more premium, editorial, and easier to trust.
+                      </p>
+                    </div>
+                    <div className="glass-panel rounded-[1.5rem] border border-white/20 px-5 py-4 text-sm text-white shadow-[0_14px_34px_rgba(25,28,29,0.12)]">
+                      <div className="flex items-center gap-2 text-white/72">
+                        <Sparkles className="h-4 w-4" />
+                        <span className="font-semibold">Recommendation: 14-day cache</span>
+                      </div>
+                      <div className="mt-2 flex items-center gap-2 text-white/72">
+                        <TrendingUp className="h-4 w-4" />
+                        <span className="font-semibold">Trend: 1-day cache</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
 
-              {/* {t.locationFilter}s */}
-              <div className="bg-white p-6 rounded-[2rem] border border-stone-100 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 text-stone-400 mb-2">
-                  <MapPinned className="w-4 h-4" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{t.locationFilter}</span>
-                </div>
-                <p className="text-xs text-stone-400">{t.locationNote}</p>
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="grid grid-cols-1 gap-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-stone-400">{t.region}</span>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(Object.keys(REGION_PRESETS) as RegionKey[]).map((regionKey) => (
+                <section className="glass-panel overflow-hidden rounded-[2rem] border border-white/70 bg-white/88 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                  <div className="mb-5 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                    <div>
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">{t.locationFilter}</p>
+                      <h3 className="mt-2 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">Active region</h3>
+                    </div>
+                    <p className="max-w-xl text-sm text-[#5f6368]">{t.locationNote}</p>
+                  </div>
+
+                  <div className="flex gap-3 overflow-x-auto pb-1 hide-scrollbar">
+                    {(Object.keys(REGION_PRESETS) as RegionKey[]).map((regionKey) => {
+                      const active = selectedRegionKey === regionKey;
+                      return (
                         <button
                           key={regionKey}
                           onClick={() => setSelectedRegionKey(regionKey)}
                           className={cn(
-                            'px-4 py-3 rounded-2xl text-sm font-black border transition-all',
-                            selectedRegionKey === regionKey ? 'bg-stone-900 text-white border-stone-900' : 'bg-stone-50 text-stone-500 border-stone-100'
+                            'flex-none rounded-full px-5 py-3 text-sm font-bold transition-all',
+                            active
+                              ? 'bg-[#b51c00] text-white shadow-[0_14px_30px_rgba(181,28,0,0.18)]'
+                              : 'bg-[#f3f4f5] text-[#191c1d] hover:bg-white'
                           )}
                         >
-                          {REGION_PRESETS[regionKey].name}
+                          <span className="inline-flex items-center gap-2">
+                            <MapPin className="h-4 w-4" />
+                            {REGION_PRESETS[regionKey].name}
+                          </span>
                         </button>
-                      ))}
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Country</p>
+                      <p className="mt-2 font-semibold text-[#191c1d]">{locationFilter.country}</p>
                     </div>
+                    <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                      <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">State / Prefecture</p>
+                      <p className="mt-2 font-semibold text-[#191c1d]">{locationFilter.prefecture}</p>
+                    </div>
+                    <label className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                      <span className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">{t.cityArea}</span>
+                      <input
+                        type="text"
+                        placeholder={t.cityArea}
+                        value={locationFilter.municipality}
+                        onChange={(e) => setLocationFilter(prev => ({ ...prev, municipality: e.target.value }))}
+                        className="mt-2 w-full bg-transparent font-semibold text-[#191c1d] outline-none placeholder:text-[#a2a6ab]"
+                      />
+                    </label>
+                    <label className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                      <span className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">{t.addressOptional}</span>
+                      <input
+                        type="text"
+                        placeholder={t.addressOptional}
+                        value={locationFilter.address}
+                        onChange={(e) => setLocationFilter(prev => ({ ...prev, address: e.target.value }))}
+                        className="mt-2 w-full bg-transparent font-semibold text-[#191c1d] outline-none placeholder:text-[#a2a6ab]"
+                      />
+                    </label>
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Country"
-                    value={locationFilter.country}
-                    readOnly
-                    className="w-full px-4 py-3 bg-stone-100 border border-stone-100 rounded-2xl text-sm text-stone-500 cursor-not-allowed"
-                  />
-                  <div className="grid grid-cols-2 gap-3">
-                    <input
-                      type="text"
-                      placeholder="State"
-                      value={locationFilter.prefecture}
-                      readOnly
-                      className="w-full px-4 py-3 bg-stone-100 border border-stone-100 rounded-2xl text-sm text-stone-500 cursor-not-allowed"
-                    />
-                    <input
-                      type="text"
-                      placeholder={t.cityArea}
-                      value={locationFilter.municipality}
-                      onChange={(e) => setLocationFilter(prev => ({ ...prev, municipality: e.target.value }))}
-                      className="w-full px-4 py-3 bg-stone-50 border border-stone-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/5"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder={t.addressOptional}
-                    value={locationFilter.address}
-                    onChange={(e) => setLocationFilter(prev => ({ ...prev, address: e.target.value }))}
-                    className="w-full px-4 py-3 bg-stone-50 border border-stone-100 rounded-2xl text-sm focus:outline-none focus:ring-2 focus:ring-stone-900/5"
-                  />
-                </div>
-              </div>
+                </section>
 
-              {/* Mode Switcher */}
-              <div className="flex p-1 bg-stone-100 rounded-2xl">
-                <button
-                  onClick={() => setAiMode('recommend')}
-                  className={cn(
-                    "flex-1 py-3 text-xs font-black rounded-xl transition-all",
-                    aiMode === 'recommend' ? "bg-white text-stone-900 shadow-sm" : "text-stone-400"
-                  )}
-                >
-                  {t.recommend}
-                </button>
-                <button
-                  onClick={() => setAiMode('trend')}
-                  className={cn(
-                    "flex-1 py-3 text-xs font-black rounded-xl transition-all",
-                    aiMode === 'trend' ? "bg-white text-stone-900 shadow-sm" : "text-stone-400"
-                  )}
-                >
-                  {t.trends}
-                </button>
-              </div>
+                <section className="grid gap-6 lg:grid-cols-[0.72fr_0.28fr]">
+                  <div className="space-y-6">
+                    <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/88 p-4 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                      <div className="grid grid-cols-2 gap-2 rounded-[1.4rem] bg-[#f3f4f5] p-1.5">
+                        <button
+                          onClick={() => setAiMode('recommend')}
+                          className={cn(
+                            'rounded-[1rem] px-4 py-3 text-sm font-bold transition-all',
+                            aiMode === 'recommend' ? 'bg-white text-[#191c1d] shadow-[0_8px_24px_rgba(25,28,29,0.06)]' : 'text-[#7c7f82]'
+                          )}
+                        >
+                          {t.recommend}
+                        </button>
+                        <button
+                          onClick={() => setAiMode('trend')}
+                          className={cn(
+                            'rounded-[1rem] px-4 py-3 text-sm font-bold transition-all',
+                            aiMode === 'trend' ? 'bg-white text-[#191c1d] shadow-[0_8px_24px_rgba(25,28,29,0.06)]' : 'text-[#7c7f82]'
+                          )}
+                        >
+                          {t.trends}
+                        </button>
+                      </div>
+                    </div>
 
-              {aiMode === 'trend' && (
-                <div className="space-y-4">
-                  <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-                    {['all', ...Object.keys(CATEGORY_CONFIG)].map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => setAiTrendCategory(cat)}
-                        className={cn(
-                          "px-4 py-2 rounded-xl text-[10px] font-black whitespace-nowrap transition-all",
-                          aiTrendCategory === cat ? "bg-stone-900 text-white" : "bg-white text-stone-400 border border-stone-100"
-                        )}
-                      >
-                        {cat.toUpperCase()}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <button 
-                onClick={handleAiRecommend}
-                disabled={aiLoading}
-                className="w-full p-6 bg-stone-900 text-white rounded-[2rem] font-black flex items-center justify-center gap-3 shadow-xl shadow-stone-900/20 active:scale-95 transition-all disabled:opacity-50"
-              >
-                {aiLoading ? <Loader2 className="w-6 h-6 animate-spin" /> : <Sparkles className="w-6 h-6" />}
-                {aiMode === 'recommend' ? t.getRecommendations : t.getTrends}
-              </button>
-
-              {aiError && (
-                <div className="rounded-3xl border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-700">
-                  <div className="flex items-start gap-2">
-                    <AlertCircle className="mt-0.5 h-4 w-4" />
-                    <span>{t.aiErrorPrefix}: {aiError}</span>
-                  </div>
-                </div>
-              )}
-
-              {aiResults && (
-                <div className="space-y-8">
-                  {aiMode === 'recommend' && recommendationCards.length > 0 && (
-                    <section className="space-y-4">
-                      <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest">{t.recommendedSpots}</h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {recommendationCards.map((rec, i) => (
-                          <div key={i} className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                            <div className="flex items-start justify-between mb-2">
-                              <h4 className="font-black text-stone-900">{uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja)}</h4>
-                              <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-2 py-1 rounded-lg uppercase">
-                                {rec.category}
-                              </span>
-                            </div>
-                            <p className="text-sm text-stone-500 leading-relaxed">{uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja)}</p>
-                          </div>
+                    {aiMode === 'trend' && (
+                      <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
+                        {['all', ...Object.keys(CATEGORY_CONFIG)].map(cat => (
+                          <button
+                            key={cat}
+                            onClick={() => setAiTrendCategory(cat)}
+                            className={cn(
+                              'rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition-all',
+                              aiTrendCategory === cat
+                                ? 'bg-[#006a62] text-white shadow-[0_10px_24px_rgba(0,106,98,0.16)]'
+                                : 'bg-white text-[#5f6368]'
+                            )}
+                          >
+                            {cat}
+                          </button>
                         ))}
                       </div>
-                    </section>
-                  )}
+                    )}
 
-                  {aiMode === 'trend' && aiResults.trends && (
-                    <section className="space-y-4">
-                      <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest">{t.localTrends}</h3>
-                      <div className="grid grid-cols-1 gap-4">
-                        {aiResults.trends.map((trend, i) => (
-                          <div key={i} className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                            <div className="flex items-start justify-between mb-2 gap-3">
-                              <div className="flex items-start gap-2">
-                                <TrendingUp className="w-4 h-4 text-emerald-500 mt-0.5" />
-                                <div>
-                                  <h4 className="font-black text-stone-900">
-                                    {uiLanguage === 'ja' ? (trend.topic_ja || trend.keyword_ja) : (trend.topic_en || trend.keyword_en)}
-                                  </h4>
-                                  <p className="mt-1 text-xs font-semibold text-stone-500">
-                                    {uiLanguage === 'ja' ? trend.topic_ja : trend.topic_en}
-                                  </p>
+                    <button
+                      onClick={handleAiRecommend}
+                      disabled={aiLoading}
+                      className="inline-flex w-full items-center justify-center gap-3 rounded-full bg-[linear-gradient(135deg,#b51c00,#d9371a)] px-6 py-5 text-sm font-black text-white shadow-[0_18px_34px_rgba(181,28,0,0.18)] transition-all active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {aiLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Sparkles className="h-5 w-5" />}
+                      {aiMode === 'recommend' ? t.getRecommendations : t.getTrends}
+                    </button>
+
+                    {aiError && (
+                      <div className="rounded-[1.5rem] border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-700">
+                        <div className="flex items-start gap-2">
+                          <AlertCircle className="mt-0.5 h-4 w-4" />
+                          <span>{t.aiErrorPrefix}: {aiError}</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {aiMode === 'recommend' && aiResults && recommendationCards.length > 0 && (
+                      <section className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">{t.recommendedSpots}</h3>
+                          <span className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">{REGION_PRESETS[selectedRegionKey].name}</span>
+                        </div>
+
+                        {recommendationCards[0] && (
+                          <div className="group relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#191c1d,#2f3335)] p-8 text-white shadow-[0_24px_60px_rgba(25,28,29,0.18)]">
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(181,28,0,0.35),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(0,106,98,0.25),transparent_26%)]" />
+                            <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                              <div className="max-w-2xl">
+                                <span className="inline-flex rounded-full bg-[#006a62] px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white">MILZ Top Match</span>
+                                <h4 className="mt-4 font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em]">
+                                  {uiLanguage === 'ja' ? (recommendationCards[0].name_ja || recommendationCards[0].name_en) : (recommendationCards[0].name_en || recommendationCards[0].name_ja)}
+                                </h4>
+                                <div className="mt-4 max-w-xl rounded-[1.5rem] border border-white/15 bg-white/10 p-4 backdrop-blur-xl">
+                                  <div className="flex gap-3">
+                                    <Sparkles className="mt-0.5 h-5 w-5 text-[#84f5e8]" />
+                                    <p className="text-sm leading-7 text-white/88">
+                                      {uiLanguage === 'ja' ? (recommendationCards[0].reason_ja || recommendationCards[0].reason_en) : (recommendationCards[0].reason_en || recommendationCards[0].reason_ja)}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
-                              <span className="text-[10px] font-black bg-stone-50 text-stone-500 px-2 py-1 rounded-lg uppercase whitespace-nowrap">
-                                {trend.category}
-                              </span>
-                            </div>
-                            <p className="text-sm text-stone-500 leading-relaxed">
-                              {uiLanguage === 'ja' ? trend.description_ja : trend.description_en}
-                            </p>
-                            <div className="mt-4 flex items-center gap-2">
-                              <div className="flex-1 h-1 bg-stone-100 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-emerald-500" 
-                                  style={{ width: `${trend.popularity}%` }}
-                                />
+                              <div className="glass-panel rounded-[1.5rem] border border-white/16 bg-white/10 px-5 py-4 text-white/86">
+                                <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/58">Category</p>
+                                <p className="mt-2 text-sm font-semibold">{recommendationCards[0].category}</p>
                               </div>
-                              <span className="text-[10px] font-black text-stone-400">{trend.popularity}%</span>
                             </div>
-                            {trend.source_url && (
-                              <a
-                                href={trend.source_url}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-3 inline-flex items-center gap-2 text-xs font-black text-stone-500 hover:text-stone-900"
-                              >
-                                <ExternalLink className="h-3.5 w-3.5" />
-                                {t.source}
-                              </a>
-                            )}
                           </div>
-                        ))}
+                        )}
+
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {recommendationCards.slice(1).map((rec, i) => (
+                            <div key={i} className="glass-panel rounded-[1.75rem] border border-white/70 bg-white/92 p-6 shadow-[0_16px_34px_rgba(25,28,29,0.08)]">
+                              <div className="flex items-start justify-between gap-4">
+                                <div>
+                                  <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Recommendation</p>
+                                  <h4 className="mt-2 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">
+                                    {uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja)}
+                                  </h4>
+                                </div>
+                                <span className="rounded-full bg-[#f3f4f5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5f6368]">{rec.category}</span>
+                              </div>
+                              <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja)}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+
+                    {aiMode === 'trend' && aiResults?.trends && (
+                      <section className="space-y-5">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">{t.localTrends}</h3>
+                          <span className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Google Trends based</span>
+                        </div>
+                        <div className="grid gap-4 md:grid-cols-2">
+                          {aiResults.trends.map((trend, i) => (
+                            <div key={i} className="glass-panel rounded-[1.75rem] border border-white/70 bg-white/92 p-6 shadow-[0_16px_34px_rgba(25,28,29,0.08)]">
+                              <div className="flex items-start justify-between gap-3">
+                                <div className="flex items-start gap-3">
+                                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#006a62]/10 text-[#006a62]">
+                                    <TrendingUp className="h-5 w-5" />
+                                  </div>
+                                  <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Trend #{i + 1}</p>
+                                    <h4 className="mt-1 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">
+                                      {uiLanguage === 'ja' ? (trend.topic_ja || trend.keyword_ja) : (trend.topic_en || trend.keyword_en)}
+                                    </h4>
+                                  </div>
+                                </div>
+                                <span className="rounded-full bg-[#f3f4f5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5f6368]">{trend.category}</span>
+                              </div>
+                              <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? trend.description_ja : trend.description_en}</p>
+                              <div className="mt-5">
+                                <div className="mb-2 flex items-center justify-between text-[11px] font-semibold text-[#5f6368]">
+                                  <span>Popularity</span>
+                                  <span>{trend.popularity}%</span>
+                                </div>
+                                <div className="h-2 overflow-hidden rounded-full bg-[#eef0f1]">
+                                  <div className="h-full rounded-full bg-[linear-gradient(90deg,#006a62,#84f5e8)]" style={{ width: `${trend.popularity}%` }} />
+                                </div>
+                              </div>
+                              {trend.source_url && (
+                                <a
+                                  href={trend.source_url}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-4 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-[#b51c00] hover:opacity-80"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" />
+                                  {t.source}
+                                </a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </div>
+
+                  <aside className="space-y-4">
+                    <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Tone</p>
+                      <h4 className="mt-3 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">Premium editorial discovery</h4>
+                      <p className="mt-3 text-sm leading-7 text-[#5f6368]">
+                        Recommendation emphasizes real places. Trend emphasizes currently searched topics. Both should feel curated, not templated.
+                      </p>
+                    </div>
+                    <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Region Summary</p>
+                      <div className="mt-4 space-y-4">
+                        <div className="rounded-[1.4rem] bg-[#f8f9fa] px-4 py-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Country</p>
+                          <p className="mt-2 font-semibold text-[#191c1d]">{locationFilter.country}</p>
+                        </div>
+                        <div className="rounded-[1.4rem] bg-[#f8f9fa] px-4 py-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Scope</p>
+                          <p className="mt-2 font-semibold text-[#191c1d]">{buildScopedLocationString(activeRegion, locationFilter) || `${activeRegion.country} ${activeRegion.prefecture} ${activeRegion.municipality}`}</p>
+                        </div>
                       </div>
-                    </section>
-                  )}
-                </div>
-              )}
+                    </div>
+                  </aside>
+                </section>
+              </div>
             </motion.div>
           )}
-
           {activeTab === 'profile' && (
-            <motion.div 
+            <motion.div
               key="profile"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 20 }}
-              className="h-full overflow-y-auto p-6 pb-40 space-y-8 bg-stone-50 relative z-10"
+              className="milz-editorial-bg h-full overflow-y-auto px-6 pb-40 pt-6"
             >
-              <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-stone-100 text-center space-y-6">
-                <div className="relative inline-block">
-                  <div className="w-24 h-24 bg-stone-900 rounded-[2rem] flex items-center justify-center mx-auto shadow-xl">
-                    <UserIcon className="w-10 h-10 text-white" />
-                  </div>
-                  {role === 'admin' && (
-                    <div className="absolute -bottom-2 -right-2 w-10 h-10 bg-emerald-500 rounded-2xl border-4 border-white flex items-center justify-center shadow-lg">
-                      <ShieldCheck className="w-5 h-5 text-white" />
-                    </div>
-                  )}
-                </div>
-                <div>
-                  <h2 className="text-2xl font-black text-stone-900">{user.email?.split('@')[0]}</h2>
-                  <p className="text-stone-400 font-medium">{user.email}</p>
-                </div>
-                <div className="flex items-center justify-center gap-2">
-                  <span className={cn(
-                    "px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                    role === 'admin' ? "bg-emerald-50 text-emerald-600" : "bg-blue-50 text-blue-600"
-                  )}>
-                    {role === 'admin' ? 'ADMIN' : 'PERSONAL'}
-                  </span>
-                </div>
-                <div className="text-[10px] font-mono text-stone-400 bg-stone-100 p-2 rounded-lg break-all">
-                  ID: {user.id}<br/>
-                  Role: {role || 'none'}
-                </div>
-
-                <div className="space-y-4 text-left">
-                  <div className="flex items-center gap-2 px-1">
-                    <Globe className="w-4 h-4 text-stone-400" />
-                    <span className="text-[10px] font-black text-stone-400 uppercase tracking-widest">{t.mapStyleSettings}</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(Object.keys(MAP_STYLES) as Array<keyof typeof MAP_STYLES>).map((styleKey) => (
-                      <button
-                        key={styleKey}
-                        onClick={() => setMapStyle(styleKey)}
-                        className={cn(
-                          "p-4 rounded-2xl border-2 transition-all text-left space-y-1",
-                          mapStyle === styleKey 
-                            ? "border-stone-900 bg-stone-900 text-white shadow-lg" 
-                            : "border-stone-100 bg-white text-stone-900 hover:border-stone-200"
-                        )}
-                      >
-                        <div className="font-black text-xs uppercase tracking-tighter">{styleKey === 'original' ? t.original : t.guide}</div>
-                        <div className={cn(
-                          "text-[9px] font-medium leading-tight",
-                          mapStyle === styleKey ? "text-stone-400" : "text-stone-400"
-                        )}>
-                          {MAP_STYLES[styleKey].description}
+              <div className="mx-auto max-w-5xl space-y-8">
+                <section className="glass-panel overflow-hidden rounded-[2rem] border border-white/70 bg-white/90 p-8 shadow-[0_24px_60px_rgba(25,28,29,0.10)] sm:p-10">
+                  <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+                    <div className="flex items-center gap-5">
+                      <div className="relative">
+                        <div className="flex h-24 w-24 items-center justify-center rounded-[1.8rem] bg-[linear-gradient(135deg,#b51c00,#d9371a)] text-white shadow-[0_20px_40px_rgba(181,28,0,0.18)]">
+                          <UserIcon className="h-11 w-11" />
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-4 space-y-2">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full py-3 text-xs font-black text-rose-500 hover:text-rose-600 transition-colors uppercase tracking-widest border border-rose-100 rounded-xl"
-                  >
-                    {t.signOut}
-                  </button>
-                  <button
-                    onClick={async () => {
-                      addLog('Manual Connection Test: Starting...');
-                      const diag = await testSupabaseConnection();
-                      if (diag.success) {
-                        addLog(`Manual Connection Test: Success (${diag.message})`);
-                        showToast(`接続成功! (${diag.message})`, "success");
-                      } else {
-                        addLog(`Manual Connection Test: Failed (${diag.message})`);
-                        console.error('Connection Test Failed:', diag);
-                        let msg = `接続失敗: ${diag.message}`;
-                        if (diag.details) msg += `\n詳細: ${diag.details}`;
-                        
-                        if (diag.isTimeout) {
-                          msg += `\n\n【考えられる原因】\n1. Supabaseプロジェクトが「Paused (停止中)」になっている（ダッシュボードでRestoreしてください）\n2. ネットワーク環境（VPNや社内LAN）で通信が遮断されている\n3. URLが間違っている（https://[ID].supabase.co である必要があります）`;
-                        }
-                        
-                        // Check for common URL errors
-                        const url = import.meta.env.VITE_SUPABASE_URL || '';
-                        if (url.includes('supabase.com/dashboard')) {
-                          msg += `\n\n⚠️ 注意: URLにダッシュボードのURLが設定されています。API URLを設定してください。`;
-                        } else if (!url.startsWith('https://')) {
-                          msg += `\n\n⚠️ 注意: URLは https:// で始まる必要があります。`;
-                        }
-                        
-                        showToast(msg, "error");
-                      }
-                    }}
-                    className="w-full py-3 text-[10px] font-black text-emerald-600 hover:text-emerald-700 transition-colors uppercase tracking-widest bg-emerald-50 rounded-xl"
-                  >
-                    Test DB Connection
-                  </button>
-                  <button
-                    onClick={async () => {
-                      addLog('Raw Fetch Test: Starting...');
-                      try {
-                        const url = import.meta.env.VITE_SUPABASE_URL;
-                        const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-                        const res = await fetch(`${url}/rest/v1/admin_places?select=*`, {
-                          headers: {
-                            'apikey': key,
-                            'Authorization': `Bearer ${key}`
-                          }
-                        });
-                        if (res.ok) {
-                          const data = await res.json();
-                          addLog(`Raw Fetch Test: Success (${data.length} items)`);
-                          setPlaces(data);
-                          showToast(`Raw Fetch成功: ${data.length}件`, "success");
-                        } else {
-                          const err = await res.text();
-                          addLog(`Raw Fetch Test: Failed (${res.status})`);
-                          showToast(`Raw Fetch失敗: ${res.status}`, "error");
-                        }
-                      } catch (e: any) {
-                        addLog(`Raw Fetch Test: Exception: ${e.message}`);
-                        showToast(`Raw Fetchエラー: ${e.message}`, "error");
-                      }
-                    }}
-                    className="w-full py-3 text-[10px] font-black text-blue-600 hover:text-blue-700 transition-colors uppercase tracking-widest bg-blue-50 rounded-xl"
-                  >
-                    Debug: Fetch with Raw API
-                  </button>
-                  <button
-                    onClick={async () => {
-                      addLog('Manual Reset: Resetting client...');
-                      resetSupabaseClient();
-                      addLog('Manual Reset: Client recreated. Retrying fetch...');
-                      fetchPlaces();
-                      showToast("再初期化しました。", "info");
-                    }}
-                    className="w-full py-3 text-[10px] font-black text-amber-600 hover:text-amber-700 transition-colors uppercase tracking-widest bg-amber-50 rounded-xl"
-                  >
-                    Reset & Reconnect
-                  </button>
-                  <button
-                    onClick={() => {
-                      localStorage.clear();
-                      sessionStorage.clear();
-                      addLog('Manual Reset: Storage cleared. Reloading...');
-                      showToast("キャッシュをクリアしました。", "info");
-                      window.location.reload();
-                    }}
-                    className="w-full py-3 text-[10px] font-black text-rose-600 hover:text-rose-700 transition-colors uppercase tracking-widest bg-rose-50 rounded-xl"
-                  >
-                    Clear Cache & Session
-                  </button>
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="w-full py-3 text-[10px] font-black text-stone-600 hover:text-stone-700 transition-colors uppercase tracking-widest bg-stone-100 rounded-xl"
-                  >
-                    Refresh Application
-                  </button>
-                  <button
-                    onClick={() => setShowSqlModal(true)}
-                    className="w-full py-3 text-[10px] font-black text-stone-600 hover:text-stone-700 transition-colors uppercase tracking-widest bg-stone-100 rounded-xl"
-                  >
-                    View SQL Setup Script
-                  </button>
-                  <button
-                    onClick={() => setShowConfigModal(true)}
-                    className="w-full py-3 text-[10px] font-black text-stone-600 hover:text-stone-700 transition-colors uppercase tracking-widest bg-stone-100 rounded-xl"
-                  >
-                    Check Config URL & Key
-                  </button>
-
-                  {/* Debug Logs Section */}
-                  <div className="pt-6 border-t border-stone-100 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Debug Logs</h3>
-                      <button 
-                        onClick={() => setDebugLogs([])}
-                        className="text-[10px] font-black text-stone-400 hover:text-stone-600 uppercase"
-                      >
-                        Clear
-                      </button>
-                    </div>
-                    <div className="bg-stone-900 rounded-2xl p-4 h-40 overflow-y-auto font-mono text-[10px] text-emerald-400 space-y-1 text-left">
-                      {debugLogs.length === 0 ? (
-                        <div className="text-stone-600 italic">No logs yet...</div>
-                      ) : (
-                        debugLogs.map((log, i) => (
-                          <div key={i} className="border-b border-stone-800 pb-1 last:border-0">
-                            {log}
+                        {role === 'admin' && (
+                          <div className="absolute -bottom-2 -right-2 flex h-11 w-11 items-center justify-center rounded-2xl border-4 border-white bg-[#006a62] text-white shadow-[0_14px_28px_rgba(0,106,98,0.16)]">
+                            <ShieldCheck className="h-5 w-5" />
                           </div>
-                        ))
-                      )}
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.32em] text-[#7c7f82]">Profile</p>
+                        <h2 className="mt-2 font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em] text-[#191c1d]">{user.email?.split('@')[0]}</h2>
+                        <p className="mt-2 text-sm text-[#5f6368]">{user.email}</p>
+                        <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-[#f3f4f5] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#191c1d]">
+                          {role === 'admin' ? 'ADMIN' : 'PERSONAL'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="grid gap-3 sm:w-[22rem] sm:grid-cols-2">
+                      <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Access</p>
+                        <p className="mt-2 font-semibold text-[#191c1d]">{role === 'admin' ? 'Curation + admin tools' : 'Bookmarks + AI discovery'}</p>
+                      </div>
+                      <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                        <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Account ID</p>
+                        <p className="mt-2 truncate text-sm font-semibold text-[#191c1d]">{user.id}</p>
+                      </div>
                     </div>
                   </div>
-                  <button
-                    onClick={() => {
-                      console.log('App: Manual Role Refresh');
-                      fetchProfile(user.id, user.email);
-                    }}
-                    className="w-full py-3 text-[10px] font-black text-stone-400 hover:text-stone-600 transition-colors uppercase tracking-widest"
-                  >
-                    Refresh Permissions
-                  </button>
-                </div>
-              </div>
+                </section>
 
-              <div className="space-y-4">
-                <h3 className="text-xs font-black text-stone-400 uppercase tracking-widest px-2">Stats</h3>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                    <p className="text-2xl font-black text-stone-900">{favorites.length}</p>
-                    <p className="text-[10px] font-black text-stone-400 uppercase">Favorites</p>
-                  </div>
-                  <div className="bg-white p-6 rounded-3xl border border-stone-100 shadow-sm">
-                    <p className="text-2xl font-black text-stone-900">{places.length}</p>
-                    <p className="text-[10px] font-black text-stone-400 uppercase">Global Spots</p>
-                  </div>
-                </div>
-              </div>
+                <section className="grid gap-6 lg:grid-cols-[0.72fr_0.28fr]">
+                  <div className="space-y-6">
+                    <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                      <div className="mb-5 flex items-center gap-3">
+                        <Palette className="h-5 w-5 text-[#b51c00]" />
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Settings</p>
+                          <h3 className="mt-1 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">{t.mapStyleSettings}</h3>
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        {(Object.keys(MAP_STYLES) as Array<keyof typeof MAP_STYLES>).map((styleKey) => (
+                          <button
+                            key={styleKey}
+                            onClick={() => setMapStyle(styleKey)}
+                            className={cn(
+                              'rounded-[1.5rem] p-5 text-left transition-all',
+                              mapStyle === styleKey
+                                ? 'bg-[linear-gradient(135deg,#191c1d,#2f3335)] text-white shadow-[0_18px_34px_rgba(25,28,29,0.14)]'
+                                : 'bg-[#f8f9fa] text-[#191c1d] hover:bg-white'
+                            )}
+                          >
+                            <p className="text-[10px] font-black uppercase tracking-[0.26em] opacity-65">{styleKey === 'original' ? t.original : t.guide}</p>
+                            <p className="mt-3 font-['Plus_Jakarta_Sans'] text-xl font-extrabold tracking-[-0.03em]">{styleKey === 'original' ? 'Current map' : 'Guide map'}</p>
+                            <p className={cn('mt-3 text-sm leading-6', mapStyle === styleKey ? 'text-white/72' : 'text-[#5f6368]')}>
+                              {MAP_STYLES[styleKey].description}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
 
-              <div className="pt-8 text-center">
-                <p className="text-[10px] text-stone-300 font-bold uppercase tracking-widest">
-                  Powered by milztech
-                </p>
+                    <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                      <div className="mb-5 flex items-center gap-3">
+                        <Globe className="h-5 w-5 text-[#006a62]" />
+                        <div>
+                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Workspace</p>
+                          <h3 className="mt-1 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">Preferences</h3>
+                        </div>
+                      </div>
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Language</p>
+                          <p className="mt-2 font-semibold text-[#191c1d]">{uiLanguage === 'ja' ? 'Japanese' : 'English'}</p>
+                        </div>
+                        <div className="rounded-[1.5rem] bg-[#f8f9fa] px-5 py-4">
+                          <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Favorites</p>
+                          <p className="mt-2 font-semibold text-[#191c1d]">{favorites.length} saved spots</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <aside className="space-y-4">
+                    <div className="glass-panel rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-[0_18px_44px_rgba(25,28,29,0.08)]">
+                      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-[#7c7f82]">Account</p>
+                      <p className="mt-3 text-sm leading-7 text-[#5f6368]">
+                        Keep the map as-is, while the surrounding experience feels softer, more premium, and easier to navigate.
+                      </p>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full rounded-full border border-[#f0c5bc] bg-white px-6 py-4 text-sm font-black uppercase tracking-[0.18em] text-[#b51c00] transition-colors hover:bg-[#fff4f1]"
+                    >
+                      {t.logout}
+                    </button>
+                  </aside>
+                </section>
               </div>
             </motion.div>
           )}
@@ -2451,54 +2463,54 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-stone-900/60 backdrop-blur-sm z-[2000] flex items-end sm:items-center justify-center p-4"
+            className="fixed inset-0 z-[2000] flex items-end justify-center bg-[rgba(25,28,29,0.46)] p-4 backdrop-blur-sm sm:items-center"
           >
             <motion.div 
               initial={{ y: 100 }}
               animate={{ y: 0 }}
               exit={{ y: 100 }}
-              className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 space-y-6 shadow-2xl"
+              className="glass-panel w-full max-w-2xl rounded-[2rem] border border-white/70 bg-white/92 p-8 shadow-[0_30px_80px_rgba(25,28,29,0.14)]"
             >
               <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-black text-stone-900">
+                <h2 className="font-['Plus_Jakarta_Sans'] text-3xl font-extrabold tracking-[-0.04em] text-[#191c1d]">
                   {editingPlace ? 'Edit Spot' : 'Add New Spot'}
                 </h2>
-                <button onClick={closeAddModal} className="p-2 hover:bg-stone-100 rounded-xl">
+                <button onClick={closeAddModal} className="rounded-full p-2 text-[#7c7f82] transition-colors hover:bg-[#f3f4f5]">
                   <X className="w-6 h-6 text-stone-400" />
                 </button>
               </div>
 
               {!newPlacePos ? (
                 <div className="space-y-6">
-                  <div className="p-8 border-2 border-dashed border-stone-100 rounded-3xl text-center space-y-4">
-                    <div className="w-16 h-16 bg-stone-50 rounded-2xl flex items-center justify-center mx-auto">
+                  <div className="rounded-[1.75rem] bg-[#f8f9fa] p-8 text-center space-y-4">
+                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-[1.25rem] bg-white">
                       <MapPinned className="w-8 h-8 text-stone-300" />
                     </div>
-                    <p className="text-stone-500 font-medium">Tap anywhere on the map to set the location.</p>
+                    <p className="font-medium text-[#5f6368]">Tap anywhere on the map to set the location.</p>
                   </div>
 
                   <div className="relative flex items-center">
-                    <div className="flex-1 h-px bg-stone-100"></div>
-                    <span className="px-4 text-[10px] font-black text-stone-300 uppercase tracking-widest">OR</span>
-                    <div className="flex-1 h-px bg-stone-100"></div>
+                    <div className="h-px flex-1 bg-[#eceef0]"></div>
+                    <span className="px-4 text-[10px] font-black uppercase tracking-[0.26em] text-[#a2a6ab]">OR</span>
+                    <div className="h-px flex-1 bg-[#eceef0]"></div>
                   </div>
 
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Enter Address</label>
+                      <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Enter Address</label>
                       <div className="flex gap-2">
                         <input 
                           type="text"
                           value={modalAddress}
                           onChange={(e) => setModalAddress(e.target.value)}
                           placeholder="e.g. 1-1-1 Shiba-koen, Minato-ku, Tokyo"
-                          className="flex-1 px-6 py-4 bg-stone-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                          className="flex-1 rounded-[1.25rem] bg-[#f8f9fa] px-5 py-4 font-medium outline-none transition-all focus:ring-2 focus:ring-[#006a62]/15"
                           onKeyDown={(e) => e.key === 'Enter' && handleModalAddressSearch()}
                         />
                         <button
                           onClick={handleModalAddressSearch}
                           disabled={isGeocoding}
-                          className="px-6 bg-stone-900 text-white rounded-2xl font-black text-xs active:scale-95 transition-all disabled:opacity-50"
+                          className="rounded-full bg-[linear-gradient(135deg,#b51c00,#d9371a)] px-6 text-xs font-black text-white transition-all active:scale-[0.98] disabled:opacity-50"
                         >
                           {isGeocoding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                         </button>
@@ -2508,7 +2520,7 @@ export default function App() {
 
                   <button 
                     onClick={closeAddModal}
-                    className="w-full py-4 text-[10px] font-black text-stone-400 hover:text-stone-900 transition-colors"
+                    className="w-full py-4 text-[10px] font-black uppercase tracking-[0.22em] text-[#7c7f82] transition-colors hover:text-[#191c1d]"
                   >
                     CANCEL
                   </button>
@@ -2517,20 +2529,20 @@ export default function App() {
                 <form onSubmit={handleAddPlace} className="space-y-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Spot Name</label>
+                      <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Spot Name</label>
                       <input 
                         name="name"
                         required
                         defaultValue={editingPlace?.name}
                         placeholder="e.g. Blue Bottle Coffee"
-                        className="w-full px-6 py-4 bg-stone-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                        className="w-full rounded-[1.25rem] bg-[#f8f9fa] px-5 py-4 font-medium outline-none transition-all focus:ring-2 focus:ring-[#006a62]/15"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Photo</label>
+                      <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Photo</label>
                       <div className="flex items-center gap-4">
-                        <div className="relative w-24 h-24 bg-stone-50 rounded-2xl overflow-hidden border-2 border-stone-100 flex items-center justify-center">
+                        <div className="relative flex h-24 w-24 items-center justify-center overflow-hidden rounded-[1.25rem] bg-[#f8f9fa]">
                           {previewImage ? (
                             <img src={previewImage} className="w-full h-full object-cover" />
                           ) : (
@@ -2551,11 +2563,11 @@ export default function App() {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Category</label>
+                        <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Category</label>
                         <select 
                           name="category"
                           defaultValue={editingPlace?.category || 'その他'}
-                          className="w-full px-6 py-4 bg-stone-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium appearance-none"
+                          className="w-full rounded-[1.25rem] bg-[#f8f9fa] px-5 py-4 font-medium outline-none transition-all focus:ring-2 focus:ring-[#006a62]/15 appearance-none"
                         >
                           {Object.keys(CATEGORY_CONFIG).map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
@@ -2563,24 +2575,24 @@ export default function App() {
                         </select>
                       </div>
                       <div className="space-y-2">
-                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Website (Optional)</label>
+                        <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Website (Optional)</label>
                         <input 
                           name="website_url"
                           defaultValue={editingPlace?.website_url || ''}
                           placeholder="https://..."
-                          className="w-full px-6 py-4 bg-stone-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium"
+                          className="w-full rounded-[1.25rem] bg-[#f8f9fa] px-5 py-4 font-medium outline-none transition-all focus:ring-2 focus:ring-[#006a62]/15"
                         />
                       </div>
                     </div>
 
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest px-1">Description</label>
+                      <label className="px-1 text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Description</label>
                       <textarea 
                         name="description"
                         rows={3}
                         defaultValue={editingPlace?.description || ''}
                         placeholder="What's special about this place?"
-                        className="w-full px-6 py-4 bg-stone-50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-medium resize-none"
+                        className="w-full rounded-[1.25rem] bg-[#f8f9fa] px-5 py-4 font-medium outline-none transition-all focus:ring-2 focus:ring-[#006a62]/15 resize-none"
                       />
                     </div>
                   </div>
@@ -2589,7 +2601,7 @@ export default function App() {
                     <button 
                       type="submit"
                       disabled={isSubmitting || uploading}
-                      className="w-full py-5 bg-emerald-600 text-white rounded-2xl font-black shadow-xl shadow-emerald-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#b51c00,#d9371a)] py-5 font-black text-white shadow-[0_18px_34px_rgba(181,28,0,0.18)] transition-all active:scale-[0.98] disabled:opacity-50"
                     >
                       {(isSubmitting || uploading) ? (
                         <>
