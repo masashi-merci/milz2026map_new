@@ -64,7 +64,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const AI_CACHE_PREFIX = 'milz_ai_cache_v10';
+const AI_CACHE_PREFIX = 'milz_ai_cache_v21';
 const GEO_CACHE_PREFIX = 'milz_geo_cache_v1';
 
 function normalizeCacheText(value: string) {
@@ -195,31 +195,6 @@ type AIMapPin = {
 };
 
 function curatedRecommendationFallback(location: string): RecommendationCard[] {
-  const normalized = normalizeCacheText(location);
-  if (normalized.includes('manhattan') || normalized.includes('new york')) {
-    return [
-      { name_ja: 'Times Square', name_en: 'Times Square', reason_ja: 'ブロードウェイやミッドタウン観光の中心で、初回訪問でも動線を組みやすい定番ランドマークです。', reason_en: 'A classic Midtown landmark that is easy to work into a first New York route.', category: 'LANDMARK' },
-      { name_ja: 'Central Park', name_en: 'Central Park', reason_ja: '街歩きの合間に自然と景色をまとめて楽しめる、最も使いやすい公園スポットです。', reason_en: 'The city’s most flexible park stop for scenery, rest, and neighborhood walking.', category: 'PARK' },
-    ];
-  }
-  if (normalized.includes('tokyo') || normalized.includes('東京')) {
-    return [
-      { name_ja: '明治神宮', name_en: 'Meiji Jingu', reason_ja: '原宿や表参道と組み合わせやすく、東京観光で非常に使いやすい定番スポットです。', reason_en: 'A highly practical Tokyo stop that pairs naturally with Harajuku and Omotesando.', category: 'LANDMARK' },
-      { name_ja: '渋谷スクランブルスクエア', name_en: 'Shibuya Scramble Square', reason_ja: '買い物・食事・展望をまとめやすい渋谷の代表スポットです。', reason_en: 'A strong Shibuya anchor for shopping, dining, and views.', category: 'SHOPPING' },
-    ];
-  }
-  if (normalized.includes('kyoto') || normalized.includes('京都')) {
-    return [
-      { name_ja: '清水寺', name_en: 'Kiyomizu-dera', reason_ja: '京都らしい景観を感じやすく、東山散策の軸として使いやすいです。', reason_en: 'A classic Kyoto anchor for eastern Kyoto walking.', category: 'LANDMARK' },
-      { name_ja: '錦市場', name_en: 'Nishiki Market', reason_ja: '食べ歩きと中心部散策をまとめやすい定番スポットです。', reason_en: 'A practical central Kyoto stop for food and browsing.', category: 'RESTAURANT' },
-    ];
-  }
-  if (normalized.includes('seoul') || normalized.includes('韓国') || normalized.includes('ソウル')) {
-    return [
-      { name_ja: '景福宮', name_en: 'Gyeongbokgung Palace', reason_ja: 'ソウル観光の定番で、韓国らしい体験として非常に分かりやすいです。', reason_en: 'A core Seoul landmark that works very well for first-time visitors.', category: 'LANDMARK' },
-      { name_ja: '明洞', name_en: 'Myeongdong', reason_ja: '買い物と食べ歩きを短時間でまとめやすい王道エリアです。', reason_en: 'A practical district for shopping and street-food.', category: 'SHOPPING' },
-    ];
-  }
   return [];
 }
 
@@ -2268,25 +2243,6 @@ export default function App() {
                       </div>
                     </div>
 
-                    {aiMode === 'trend' && (
-                      <div className="flex gap-2 overflow-x-auto pb-2 hide-scrollbar">
-                        {['all', ...Object.keys(CATEGORY_CONFIG)].map(cat => (
-                          <button
-                            key={cat}
-                            onClick={() => setAiTrendCategory(cat)}
-                            className={cn(
-                              'rounded-full px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition-all',
-                              aiTrendCategory === cat
-                                ? 'bg-stone-900 text-white shadow-[0_10px_24px_rgba(25,28,29,0.16)]'
-                                : 'bg-white text-[#5f6368]'
-                            )}
-                          >
-                            {cat}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-
                     <button
                       onClick={handleAiRecommend}
                       disabled={aiLoading}
@@ -2392,7 +2348,6 @@ export default function App() {
                                     </h4>
                                   </div>
                                 </div>
-                                <span className="rounded-full bg-[#f3f4f5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5f6368]">{trend.category}</span>
                               </div>
                               <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? trend.description_ja : trend.description_en}</p>
                               <div className="mt-5">
