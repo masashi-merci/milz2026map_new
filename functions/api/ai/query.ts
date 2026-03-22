@@ -1,10 +1,10 @@
 export interface Env {
-  GEMINI_API_KEY?: string;
   SUPABASE_URL?: string;
   SUPABASE_ANON_KEY?: string;
 }
 
 type Mode = 'recommend' | 'trend';
+type Bucket = 'sightseeing' | 'food';
 
 type RecommendationItem = {
   name_ja: string;
@@ -12,8 +12,10 @@ type RecommendationItem = {
   reason_ja: string;
   reason_en: string;
   category: string;
+  bucket: Bucket;
   lat: number;
   lng: number;
+  address?: string;
   source?: 'admin' | 'osm' | 'fallback';
 };
 
@@ -35,10 +37,9 @@ type RegionConfig = {
   key: RegionKey;
   label: string;
   countryCode: string;
-  language: string;
   aliases: string[];
   center: [number, number];
-  fallback: RecommendationItem[];
+  fallbackSightseeing: RecommendationItem[];
 };
 
 type GeocodedLocation = {
@@ -58,6 +59,7 @@ type AdminPlace = {
   municipality?: string | null;
   prefecture?: string | null;
   country?: string | null;
+  address?: string | null;
   lat: number;
   lng: number;
 };
@@ -71,7 +73,7 @@ type OSMElement = {
   tags?: Record<string, string>;
 };
 
-const CACHE_VERSION = 'v20';
+const CACHE_VERSION = 'v40';
 const RECOMMEND_TTL = 60 * 60 * 24 * 14;
 const TREND_TTL = 60 * 60 * 24;
 
@@ -87,48 +89,44 @@ const REGIONS: Record<RegionKey, RegionConfig> = {
     key: 'ny',
     label: 'New York',
     countryCode: 'US',
-    language: 'en',
     aliases: ['new york', 'manhattan', 'brooklyn', 'queens', 'bronx', 'nyc', 'ニューヨーク', 'マンハッタン'],
     center: [40.7831, -73.9712],
-    fallback: [
-      { name_ja: 'セントラルパーク', name_en: 'Central Park', reason_ja: '選択地点の近くで使いやすい定番スポットです。', reason_en: 'A reliable nearby pick for the selected area.', category: 'PARK', lat: 40.7812, lng: -73.9665, source: 'fallback' },
-      { name_ja: 'グランドセントラル駅', name_en: 'Grand Central Terminal', reason_ja: '移動と建築の両面で立ち寄りやすい定番です。', reason_en: 'A dependable stop for transit and architecture.', category: 'TRANSIT', lat: 40.7527, lng: -73.9772, source: 'fallback' },
+    fallbackSightseeing: [
+      { name_ja: 'セントラルパーク', name_en: 'Central Park', reason_ja: '', reason_en: '', category: 'PARK', bucket: 'sightseeing', lat: 40.7812, lng: -73.9665, source: 'fallback' },
+      { name_ja: 'グランドセントラル駅', name_en: 'Grand Central Terminal', reason_ja: '', reason_en: '', category: 'TRANSIT', bucket: 'sightseeing', lat: 40.7527, lng: -73.9772, source: 'fallback' },
     ],
   },
   tokyo: {
     key: 'tokyo',
     label: 'Tokyo',
     countryCode: 'JP',
-    language: 'ja',
-    aliases: ['tokyo', '東京', '渋谷', '杉並', '立川', '下北沢', '新宿', '上野'],
+    aliases: ['tokyo', '東京', '渋谷', '杉並', '立川', '下北沢', '新宿', '上野', '八王子'],
     center: [35.6762, 139.6503],
-    fallback: [
-      { name_ja: '東京駅', name_en: 'Tokyo Station', reason_ja: '選択地点の近くの候補が不足したため、東京の代表的な基点を表示しています。', reason_en: 'Showing a reliable Tokyo anchor because nearby results were limited.', category: 'TRANSIT', lat: 35.6812, lng: 139.7671, source: 'fallback' },
-      { name_ja: '代々木公園', name_en: 'Yoyogi Park', reason_ja: '東京で使いやすい公園系の定番候補です。', reason_en: 'A reliable Tokyo park fallback.', category: 'PARK', lat: 35.6728, lng: 139.6949, source: 'fallback' },
+    fallbackSightseeing: [
+      { name_ja: '東京駅', name_en: 'Tokyo Station', reason_ja: '', reason_en: '', category: 'TRANSIT', bucket: 'sightseeing', lat: 35.6812, lng: 139.7671, source: 'fallback' },
+      { name_ja: '代々木公園', name_en: 'Yoyogi Park', reason_ja: '', reason_en: '', category: 'PARK', bucket: 'sightseeing', lat: 35.6728, lng: 139.6949, source: 'fallback' },
     ],
   },
   kyoto: {
     key: 'kyoto',
     label: 'Kyoto',
     countryCode: 'JP',
-    language: 'ja',
     aliases: ['kyoto', '京都', '東山', '祇園', '河原町', '清水寺'],
     center: [35.0116, 135.7681],
-    fallback: [
-      { name_ja: '清水寺', name_en: 'Kiyomizu-dera', reason_ja: '京都の代表的な文化スポットです。', reason_en: 'A dependable Kyoto cultural anchor.', category: 'LANDMARK', lat: 34.9948, lng: 135.785, source: 'fallback' },
-      { name_ja: '八坂神社', name_en: 'Yasaka Shrine', reason_ja: '東山・祇園側の導線に組み込みやすい定番です。', reason_en: 'A practical eastern Kyoto fallback.', category: 'LANDMARK', lat: 35.0037, lng: 135.7788, source: 'fallback' },
+    fallbackSightseeing: [
+      { name_ja: '清水寺', name_en: 'Kiyomizu-dera', reason_ja: '', reason_en: '', category: 'LANDMARK', bucket: 'sightseeing', lat: 34.9948, lng: 135.785, source: 'fallback' },
+      { name_ja: '八坂神社', name_en: 'Yasaka Shrine', reason_ja: '', reason_en: '', category: 'LANDMARK', bucket: 'sightseeing', lat: 35.0037, lng: 135.7788, source: 'fallback' },
     ],
   },
   korea: {
     key: 'korea',
     label: 'Seoul',
     countryCode: 'KR',
-    language: 'ko',
     aliases: ['seoul', 'ソウル', '韓国', '中区', 'jung-gu', '明洞'],
     center: [37.5665, 126.978],
-    fallback: [
-      { name_ja: '景福宮', name_en: 'Gyeongbokgung Palace', reason_ja: 'ソウルの代表的なランドマークです。', reason_en: 'A dependable Seoul landmark fallback.', category: 'LANDMARK', lat: 37.5796, lng: 126.977, source: 'fallback' },
-      { name_ja: '明洞', name_en: 'Myeongdong', reason_ja: '買い物と食事をまとめやすい中心エリアです。', reason_en: 'A practical central Seoul shopping and food district.', category: 'SHOPPING', lat: 37.5636, lng: 126.985, source: 'fallback' },
+    fallbackSightseeing: [
+      { name_ja: '景福宮', name_en: 'Gyeongbokgung Palace', reason_ja: '', reason_en: '', category: 'LANDMARK', bucket: 'sightseeing', lat: 37.5796, lng: 126.977, source: 'fallback' },
+      { name_ja: '明洞', name_en: 'Myeongdong', reason_ja: '', reason_en: '', category: 'SHOPPING', bucket: 'sightseeing', lat: 37.5636, lng: 126.985, source: 'fallback' },
     ],
   },
 };
@@ -140,19 +138,8 @@ const normalize = (value: string) => String(value || '').trim().toLowerCase().re
 const safeText = (value: unknown, fallback = '') => String(value || '').trim() || fallback;
 const contains = (source: string, ...needles: string[]) => needles.some((needle) => source.includes(normalize(needle)));
 
-const categoryLabel = (category: string) => {
-  const c = normalize(category || 'all');
-  if (contains(c, 'cafe', 'coffee', 'カフェ', '喫茶')) return 'cafe';
-  if (contains(c, 'restaurant', 'food', 'レストラン', '食事', 'グルメ', 'ランチ')) return 'food';
-  if (contains(c, 'shopping', 'shop', 'ショッピング', '買い物', '商業')) return 'shopping';
-  if (contains(c, 'park', 'nature', '公園', '自然', '庭園')) return 'park';
-  if (contains(c, 'station', 'rail', 'transit', '駅', '交通')) return 'transit';
-  if (contains(c, 'museum', 'gallery', '美術館', '博物館')) return 'museum';
-  return 'all';
-};
-
 const buildCacheKey = async (mode: Mode, locationKey: string, category: string) => {
-  const source = `${CACHE_VERSION}|${mode}|${locationKey}|${categoryLabel(category)}`;
+  const source = `${CACHE_VERSION}|${mode}|${locationKey}|${normalize(category)}`;
   const bytes = new TextEncoder().encode(source);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
@@ -198,10 +185,9 @@ const buildLocationKey = (location: string, region: RegionConfig) => `${region.k
 
 const locationRadius = (location: string) => {
   const normalized = normalize(location);
-  if (contains(normalized, '丁目', '番地', 'station', '駅', 'hotel', '寺', '神社', 'タワー', 'park', 'museum')) return 2200;
-  if (contains(normalized, 'ward', '区', '市', 'town', 'village', 'gu', 'ku')) return 4500;
-  if (contains(normalized, 'manhattan', 'brooklyn', '新宿', '渋谷', '杉並', '立川', '東山', '明洞')) return 5000;
-  return 6500;
+  if (contains(normalized, '丁目', '番地', 'station', '駅', 'hotel', '寺', '神社', 'タワー', 'park', 'museum')) return 1800;
+  if (contains(normalized, 'ward', '区', '市', 'town', 'village', 'gu', 'ku', '中区', '杉並', '立川', '八王子', '下北沢', '東山', '渋谷', 'マンハッタン')) return 3500;
+  return 5000;
 };
 
 const geocodeLocation = async (location: string, region: RegionConfig): Promise<GeocodedLocation> => {
@@ -210,7 +196,7 @@ const geocodeLocation = async (location: string, region: RegionConfig): Promise<
   try {
     const response = await timeoutFetch(url, {
       headers: {
-        'Accept': 'application/json',
+        Accept: 'application/json',
         'User-Agent': 'milz-ai-discovery/1.0',
       },
     }, 10000);
@@ -238,10 +224,25 @@ const geocodeLocation = async (location: string, region: RegionConfig): Promise<
   };
 };
 
+const locationTokens = (location: string) =>
+  normalize(location)
+    .split(/[\s,_|、　-]+/g)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2);
+
+const isFoodCategory = (category: string) => contains(normalize(category), 'restaurant', 'food', 'cafe', 'coffee', 'bar', 'グルメ', 'レストラン', 'ランチ', 'ディナー', 'カフェ', '喫茶');
+const recommendationBucket = (category: string): Bucket => isFoodCategory(category) ? 'food' : 'sightseeing';
+
+const locationMatchesAdmin = (row: AdminPlace, location: GeocodedLocation) => {
+  const haystack = normalize([row.country, row.prefecture, row.municipality, row.address, row.name, row.description].filter(Boolean).join(' '));
+  const tokens = locationTokens(location.display);
+  return tokens.some((token) => haystack.includes(token));
+};
+
 const fetchAdminPlacesNear = async (location: GeocodedLocation, env: Env): Promise<RecommendationItem[]> => {
   if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY) return [];
   try {
-    const response = await timeoutFetch(`${env.SUPABASE_URL}/rest/v1/admin_places?select=id,name,description,category,municipality,prefecture,country,lat,lng`, {
+    const response = await timeoutFetch(`${env.SUPABASE_URL}/rest/v1/admin_places?select=id,name,description,category,municipality,prefecture,country,address,lat,lng`, {
       headers: {
         apikey: env.SUPABASE_ANON_KEY,
         Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
@@ -251,17 +252,19 @@ const fetchAdminPlacesNear = async (location: GeocodedLocation, env: Env): Promi
     const rows = await response.json() as AdminPlace[];
     return rows
       .map((row) => ({ row, distance: haversineKm(location.lat, location.lng, Number(row.lat), Number(row.lng)) }))
-      .filter(({ distance }) => distance <= Math.max(location.radius / 1000, 8))
+      .filter(({ row, distance }) => Number.isFinite(distance) && distance <= Math.max(location.radius / 1000, 6) && locationMatchesAdmin(row, location))
       .sort((a, b) => a.distance - b.distance)
       .slice(0, 20)
       .map(({ row, distance }) => ({
         name_ja: safeText(row.name),
         name_en: safeText(row.name),
-        reason_ja: `${safeText(location.display)} の近くにある管理登録スポットで、現在地から約${distance.toFixed(1)}km圏内です。`,
+        reason_ja: `${safeText(location.display)} から約${distance.toFixed(1)}km圏内にある管理登録スポットです。`,
         reason_en: `An admin-curated spot near ${safeText(location.display)} and within about ${distance.toFixed(1)} km of the selected area.`,
         category: safeText(row.category, 'PLACE').toUpperCase(),
+        bucket: recommendationBucket(safeText(row.category)),
         lat: Number(row.lat),
         lng: Number(row.lng),
+        address: safeText(row.address || row.municipality || row.prefecture || row.country),
         source: 'admin' as const,
       }));
   } catch {
@@ -269,62 +272,53 @@ const fetchAdminPlacesNear = async (location: GeocodedLocation, env: Env): Promi
   }
 };
 
-const overpassClauses = (category: string) => {
-  switch (categoryLabel(category)) {
-    case 'cafe':
-      return ['node["amenity"~"cafe|coffee_shop"]', 'way["amenity"~"cafe|coffee_shop"]', 'relation["amenity"~"cafe|coffee_shop"]'];
-    case 'food':
-      return ['node["amenity"~"restaurant|food_court|fast_food"]', 'way["amenity"~"restaurant|food_court|fast_food"]', 'relation["amenity"~"restaurant|food_court|fast_food"]'];
-    case 'shopping':
-      return ['node["shop"]', 'way["shop"]', 'relation["shop"]', 'node["tourism"="mall"]', 'way["tourism"="mall"]'];
-    case 'park':
-      return ['node["leisure"~"park|garden"]', 'way["leisure"~"park|garden"]', 'relation["leisure"~"park|garden"]'];
-    case 'transit':
-      return ['node["railway"="station"]', 'way["railway"="station"]', 'node["public_transport"="station"]', 'node["amenity"="bus_station"]'];
-    case 'museum':
-      return ['node["tourism"~"museum|gallery"]', 'way["tourism"~"museum|gallery"]', 'relation["tourism"~"museum|gallery"]'];
-    default:
-      return [
-        'node["amenity"~"restaurant|cafe|fast_food"]', 'way["amenity"~"restaurant|cafe|fast_food"]',
-        'node["tourism"~"attraction|museum|gallery"]', 'way["tourism"~"attraction|museum|gallery"]',
-        'node["leisure"~"park|garden"]', 'way["leisure"~"park|garden"]',
-        'node["shop"]', 'way["shop"]',
-        'node["railway"="station"]', 'way["railway"="station"]',
-      ];
-  }
-};
-
-const elementNameJa = (el: OSMElement) => safeText(el.tags?.['name:ja'] || el.tags?.name || el.tags?.['official_name:ja']);
-const elementNameEn = (el: OSMElement) => safeText(el.tags?.['name:en'] || el.tags?.name || el.tags?.['official_name']);
-
 const inferCategory = (el: OSMElement) => {
   const tags = el.tags || {};
   if (tags.amenity === 'cafe' || tags.amenity === 'coffee_shop') return 'CAFE';
-  if (['restaurant', 'fast_food', 'food_court'].includes(tags.amenity || '')) return 'RESTAURANT';
+  if (['restaurant', 'fast_food', 'food_court', 'bar', 'pub'].includes(tags.amenity || '')) return 'RESTAURANT';
   if (tags.shop) return 'SHOPPING';
   if (tags.leisure === 'park' || tags.leisure === 'garden') return 'PARK';
   if (tags.railway === 'station' || tags.public_transport === 'station' || tags.amenity === 'bus_station') return 'TRANSIT';
-  if (['museum', 'gallery', 'attraction'].includes(tags.tourism || '')) return 'LANDMARK';
-  if (tags.historic || tags.tourism || tags.landuse === 'cemetery') return 'LANDMARK';
+  if (['museum', 'gallery', 'attraction', 'viewpoint'].includes(tags.tourism || '')) return 'LANDMARK';
+  if (tags.historic || tags.amenity === 'place_of_worship') return 'LANDMARK';
   return 'PLACE';
 };
 
-const recommendationReason = (name: string, category: string, locationLabel: string, distanceKm: number) => {
+const elementNameJa = (el: OSMElement) => safeText(el.tags?.['name:ja'] || el.tags?.name || el.tags?.['official_name:ja']);
+const elementNameEn = (el: OSMElement) => safeText(el.tags?.['name:en'] || el.tags?.name || el.tags?.official_name);
+const elementAddress = (el: OSMElement) => safeText([el.tags?.['addr:city'], el.tags?.['addr:suburb'], el.tags?.['addr:street']].filter(Boolean).join(' '));
+
+const recommendationReason = (locationLabel: string, distanceKm: number, bucket: Bucket, category: string) => {
   const distanceText = distanceKm < 1 ? '徒歩圏に近い' : `約${distanceKm.toFixed(1)}km圏内の`;
-  const base = `${locationLabel} の中心から${distanceText}候補です。`;
-  if (category === 'CAFE') return `${base}休憩や待ち合わせを入れやすく、エリア滞在中に使い勝手が良いです。`;
-  if (category === 'RESTAURANT') return `${base}食事目的で立ち寄りやすく、周辺回遊と合わせやすいです。`;
-  if (category === 'SHOPPING') return `${base}買い物や周辺散策をまとめやすい候補です。`;
-  if (category === 'PARK') return `${base}散歩や景色目的で組み込みやすい候補です。`;
-  if (category === 'TRANSIT') return `${base}移動の基点としても見どころとしても使いやすい候補です。`;
-  return `${base}このエリアで立ち寄り先にしやすい実在スポットです。`;
+  if (bucket === 'food') return `${locationLabel} の中心から${distanceText}飲食候補です。現地で食事や休憩先を決めたい時に使いやすい実在店です。`;
+  if (category === 'PARK') return `${locationLabel} の中心から${distanceText}観光候補です。散歩や景色目的で組み込みやすい実在スポットです。`;
+  if (category === 'TRANSIT') return `${locationLabel} の中心から${distanceText}観光導線上の基点候補です。周辺回遊と合わせて使いやすいです。`;
+  return `${locationLabel} の中心から${distanceText}観光候補です。このエリアで立ち寄りやすい実在スポットです。`;
 };
 
-const fetchOverpassRecommendations = async (location: GeocodedLocation, category: string): Promise<RecommendationItem[]> => {
-  const clauses = overpassClauses(category)
+const overpassClausesForBucket = (bucket: Bucket) => {
+  if (bucket === 'food') {
+    return [
+      'node["amenity"~"restaurant|cafe|fast_food|bar|pub"]',
+      'way["amenity"~"restaurant|cafe|fast_food|bar|pub"]',
+      'relation["amenity"~"restaurant|cafe|fast_food|bar|pub"]',
+    ];
+  }
+  return [
+    'node["tourism"~"attraction|museum|gallery|viewpoint"]',
+    'way["tourism"~"attraction|museum|gallery|viewpoint"]',
+    'relation["tourism"~"attraction|museum|gallery|viewpoint"]',
+    'node["historic"]','way["historic"]','relation["historic"]',
+    'node["leisure"~"park|garden"]','way["leisure"~"park|garden"]','relation["leisure"~"park|garden"]',
+    'node["amenity"="place_of_worship"]','way["amenity"="place_of_worship"]','relation["amenity"="place_of_worship"]',
+  ];
+};
+
+const fetchOverpassRecommendations = async (location: GeocodedLocation, bucket: Bucket): Promise<RecommendationItem[]> => {
+  const clauses = overpassClausesForBucket(bucket)
     .map((clause) => `${clause}(around:${location.radius},${location.lat},${location.lng});`)
     .join('');
-  const body = `[out:json][timeout:18];(${clauses});out center tags 80;`;
+  const body = `[out:json][timeout:18];(${clauses});out center tags 120;`;
   try {
     const response = await timeoutFetch('https://overpass-api.de/api/interpreter', {
       method: 'POST',
@@ -342,17 +336,19 @@ const fetchOverpassRecommendations = async (location: GeocodedLocation, category
         const name = nameJa || nameEn;
         if (!name) return null;
         const distanceKm = haversineKm(location.lat, location.lng, lat, lng);
-        const categoryName = inferCategory(el);
+        const category = inferCategory(el);
         return {
           key: `${normalize(name)}:${lat.toFixed(5)}:${lng.toFixed(5)}`,
           item: {
             name_ja: nameJa || name,
             name_en: nameEn || name,
-            reason_ja: recommendationReason(name, categoryName, safeText(location.display), distanceKm),
-            reason_en: `A real nearby ${categoryName.toLowerCase()} candidate around ${safeText(location.display)}, roughly ${distanceKm.toFixed(1)} km from the selected center.`,
-            category: categoryName,
+            reason_ja: recommendationReason(safeText(location.display), distanceKm, bucket, category),
+            reason_en: `A real nearby ${bucket} candidate around ${safeText(location.display)}, roughly ${distanceKm.toFixed(1)} km from the selected center.`,
+            category,
+            bucket,
             lat,
             lng,
+            address: elementAddress(el),
             source: 'osm' as const,
           },
           distanceKm,
@@ -368,7 +364,7 @@ const fetchOverpassRecommendations = async (location: GeocodedLocation, category
 
     return Array.from(deduped.values())
       .sort((a, b) => a.distanceKm - b.distanceKm)
-      .slice(0, 30)
+      .slice(0, bucket === 'food' ? 12 : 16)
       .map((entry) => entry.item);
   } catch {
     return [];
@@ -376,37 +372,48 @@ const fetchOverpassRecommendations = async (location: GeocodedLocation, category
 };
 
 const regionFallbackNearest = (location: GeocodedLocation) => {
-  const maxDistanceKm = Math.max(location.radius / 1000 * 2.2, 8);
-  return [...location.region.fallback]
+  const maxDistanceKm = Math.max(location.radius / 1000 * 1.8, 5);
+  return [...location.region.fallbackSightseeing]
     .map((item) => ({ item, distanceKm: haversineKm(location.lat, location.lng, item.lat, item.lng) }))
     .filter(({ distanceKm }) => distanceKm <= maxDistanceKm)
     .sort((a, b) => a.distanceKm - b.distanceKm)
     .map(({ item, distanceKm }) => ({
       ...item,
-      reason_ja: recommendationReason(item.name_ja || item.name_en, item.category, safeText(location.display), distanceKm),
+      reason_ja: recommendationReason(safeText(location.display), distanceKm, 'sightseeing', item.category),
       reason_en: `A region fallback around ${safeText(location.display)}, roughly ${distanceKm.toFixed(1)} km from the selected center.`,
     }));
 };
 
-const generateRecommendations = async (locationInput: string, category: string, region: RegionConfig, env: Env): Promise<RecommendationItem[]> => {
-  const geocoded = await geocodeLocation(locationInput, region);
-  const [admin, osm] = await Promise.all([
-    fetchAdminPlacesNear(geocoded, env),
-    fetchOverpassRecommendations(geocoded, category),
-  ]);
-
-  const buckets = [...admin, ...osm, ...regionFallbackNearest(geocoded)];
-  const deduped = new Map<string, RecommendationItem>();
-  for (const item of buckets) {
+const buildRecommendationSet = (items: RecommendationItem[], limit: number) => {
+  const seen = new Set<string>();
+  const result: RecommendationItem[] = [];
+  for (const item of items) {
     const key = `${normalize(item.name_en || item.name_ja)}:${item.lat.toFixed(4)}:${item.lng.toFixed(4)}`;
-    if (!deduped.has(key)) deduped.set(key, item);
-    if (deduped.size >= 14) break;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push(item);
+    if (result.length >= limit) break;
   }
-
-  return Array.from(deduped.values()).slice(0, 10);
+  return result;
 };
 
-const GOOGLE_QUERY_SUFFIXES = ['人気', 'ランチ', 'カフェ', '観光', 'イベント', 'ホテル', 'アクセス', '駐車場', '天気', '見どころ'];
+const generateRecommendations = async (locationInput: string, _category: string, region: RegionConfig, env: Env): Promise<RecommendationItem[]> => {
+  const geocoded = await geocodeLocation(locationInput, region);
+  const [admin, sightseeing, food] = await Promise.all([
+    fetchAdminPlacesNear(geocoded, env),
+    fetchOverpassRecommendations(geocoded, 'sightseeing'),
+    fetchOverpassRecommendations(geocoded, 'food'),
+  ]);
+
+  const sightseeingPool = [...admin.filter((i) => i.bucket === 'sightseeing'), ...sightseeing, ...regionFallbackNearest(geocoded)];
+  const foodPool = [...admin.filter((i) => i.bucket === 'food'), ...food];
+
+  const sightseeingTop = buildRecommendationSet(sightseeingPool, 5);
+  const foodTop = buildRecommendationSet(foodPool, 5);
+  return [...sightseeingTop, ...foodTop];
+};
+
+const GOOGLE_QUERY_SUFFIXES = ['ランチ', 'カフェ', '観光', 'イベント', 'ホテル', 'アクセス', '駐車場', '天気', '桜', '居酒屋', '美術館', '公園'];
 
 const fetchSuggestTerms = async (query: string, region: RegionConfig): Promise<string[]> => {
   try {
@@ -419,85 +426,42 @@ const fetchSuggestTerms = async (query: string, region: RegionConfig): Promise<s
   }
 };
 
-const removeLocationPrefix = (value: string, location: string) => {
-  let output = safeText(value);
-  const variants = [location]
-    .concat(location.split(/[\s,、　]+/g))
-    .map((part) => part.trim())
-    .filter((part) => part.length >= 2)
-    .sort((a, b) => b.length - a.length);
-  for (const variant of variants) {
-    const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    output = output.replace(new RegExp(`^${escaped}[\\s　・:/-]*`, 'iu'), '').trim();
-  }
-  return output.replace(/^[\s　・:/-]+|[\s　・:/-]+$/g, '').trim();
-};
-
-const isBrokenText = (value: string) => /�|Ã|â|�/.test(value);
-
-const isMeaningfulTrend = (value: string) => {
+const isBrokenText = (value: string) => /�|Ã|â/.test(value);
+const isMeaningfulTrend = (value: string, location?: string) => {
   const text = safeText(value);
   if (!text || text.length < 2 || isBrokenText(text)) return false;
   if (/^[\W_]+$/u.test(text)) return false;
-  const banned = ['人気', 'おすすめ', 'とは', '近く', '現在', '今日', '明日', '安い', '口コミ', 'ランキング', 'google'];
-  const generic = ['観光', 'ランチ', 'カフェ', 'イベント', 'ホテル', 'アクセス', '駐車場', '天気', '見どころ'];
-  if (banned.includes(text.toLowerCase())) return false;
-  if (generic.includes(text) && text.length <= 4) return false;
+  if (location && normalize(text) === normalize(location)) return false;
   return true;
 };
 
 const trendReason = (keyword: string, location: string) => {
   const k = normalize(keyword);
-  if (contains(k, 'ランチ', 'ディナー', 'グルメ', 'restaurant', 'food', '食べ歩き', '居酒屋')) {
-    return {
-      ja: `${location} では、現地で食事先を決めたい人が直前に比較しやすい語としてこのワードが伸びています。実際に行く前に「どこで食べるか」を決める用途の検索が集まりやすいです。`,
-      en: `This keyword is likely rising because people around ${location} are comparing meal options right before visiting.`
-    };
+  if (contains(k, 'ランチ', 'ディナー', 'グルメ', 'restaurant', 'food', '食べ歩き', '居酒屋', '寿司', '焼肉', 'ラーメン')) {
+    return `${location} でこの語が検索されているのは、現地で食事先を決める直前ニーズが強いからだと考えられます。特に「いま行ける店」「比較したい店」を探す流れで検索が増えやすいです。`;
   }
   if (contains(k, 'カフェ', 'coffee', '喫茶', 'スイーツ', 'dessert')) {
-    return {
-      ja: `${location} では、休憩先や待ち合わせ先を探す流れでこのワードが検索されやすいです。散策中に「近くで入りやすい店はどこか」を確認する需要が背景にあります。`,
-      en: `This keyword likely reflects people looking for café or dessert stops around ${location} during a walk or short break.`
-    };
+    return `${location} では、散策や待ち合わせの途中で休憩先を探す動きが多く、この語が検索されやすいです。雰囲気や入りやすさを事前に見たい需要が背景にあります。`;
   }
   if (contains(k, 'ホテル', '宿', 'stay', '宿泊')) {
-    return {
-      ja: `${location} へ行く前後で宿泊候補を探す人が多く、このワードで比較検索されやすいです。滞在計画と移動動線を一緒に決めるときに検索が伸びます。`,
-      en: `This keyword likely rises when people compare lodging options before or during a trip to ${location}.`
-    };
+    return `${location} を訪れる前後で宿泊先を比較したい人が多く、この語の検索が伸びやすいです。立地や価格、移動しやすさを確認する意図が強いと考えられます。`;
   }
-  if (contains(k, 'アクセス', '駅', '駐車場', 'parking', 'bus', 'taxi')) {
-    return {
-      ja: `${location} では、現地へ向かう直前に移動手段やアクセス条件を確認する検索が集まりやすく、このワードが伸びています。`,
-      en: `This keyword is likely driven by last-minute access and transportation checks for ${location}.`
-    };
+  if (contains(k, 'アクセス', '駅', '駐車場', 'parking', 'bus', 'taxi', '行き方')) {
+    return `${location} へ向かう直前に、移動手段や駐車条件、最寄り動線を確かめたい人が多く、この語が検索されていると考えられます。`;
   }
   if (contains(k, 'イベント', '祭', 'フェス', 'ライブ', '展示', '期間限定')) {
-    return {
-      ja: `${location} 周辺で開催情報や期間限定の動きが出ると、このワードの確認検索が増えます。開催日や内容、混雑を知りたい需要が背景にあります。`,
-      en: `This keyword likely reflects searches for event timing, details, and crowd expectations around ${location}.`
-    };
+    return `${location} 周辺で開催情報や期間限定の動きがあると、この語の確認検索が増えます。開催日・内容・混雑を知りたい需要が背景にあります。`;
   }
   if (contains(k, '桜', '紅葉', '天気', '夜景', '見頃', '花見')) {
-    return {
-      ja: `${location} の季節要因や景観確認の需要から、このワードが検索されています。行くタイミングや見どころを判断したい時に伸びやすい語です。`,
-      en: `This keyword likely rises when people check seasonality, weather, or scenic timing around ${location}.`
-    };
+    return `${location} の季節要因や景観確認の需要から、この語が検索されていると考えられます。行くタイミングや今の状態を判断したい時に伸びやすいです。`;
   }
-  if (contains(k, '観光', '見どころ', '散歩', '遊び', 'デート')) {
-    return {
-      ja: `${location} で何を優先して回るか決める段階で、このワードがよく検索されます。初回訪問や短時間滞在でも動きやすい導線を探す検索意図が背景にあります。`,
-      en: `This keyword likely reflects planning searches for what to prioritize and how to move around ${location}.`
-    };
+  if (contains(k, '観光', '見どころ', '散歩', '遊び', 'デート', '美術館', '公園')) {
+    return `${location} でどこを回るか決める段階で、この語が検索されやすいです。初回訪問でも動きやすい順番や立ち寄り先を知りたい人の検索意図が背景にあります。`;
   }
-  return {
-    ja: `${location} では、このワードで「何があるか」「今なぜ注目されているか」を確認する検索が集まっていると考えられます。現地行動の前に比較や下調べをしたい需要が背景にあります。`,
-    en: `This keyword likely reflects pre-visit comparison and context checks for ${location}.`
-  };
+  return `${location} では、この語で「何があるか」「今なぜ見られているか」を確認する検索が増えていると考えられます。現地へ行く前の下調べや比較検討の需要が背景です。`;
 };
 
 const generateTrends = async (locationInput: string, region: RegionConfig): Promise<TrendItem[]> => {
-  const geocoded = await geocodeLocation(locationInput, region);
   const locationLabel = safeText(locationInput);
   const queries = [locationLabel, ...GOOGLE_QUERY_SUFFIXES.map((suffix) => `${locationLabel} ${suffix}`)];
   const counts = new Map<string, number>();
@@ -505,14 +469,10 @@ const generateTrends = async (locationInput: string, region: RegionConfig): Prom
   for (const query of queries) {
     const suggestions = await fetchSuggestTerms(query, region);
     for (const suggestion of suggestions) {
-      const keyword = removeLocationPrefix(suggestion, locationLabel);
-      if (!isMeaningfulTrend(keyword)) continue;
-      counts.set(keyword, (counts.get(keyword) || 0) + 1);
+      const phrase = safeText(suggestion).replace(/\s+/g, ' ').trim();
+      if (!isMeaningfulTrend(phrase, locationLabel)) continue;
+      counts.set(phrase, (counts.get(phrase) || 0) + 1);
     }
-  }
-
-  if (counts.size === 0) {
-    for (const suffix of GOOGLE_QUERY_SUFFIXES) counts.set(suffix, (counts.get(suffix) || 0) + 1);
   }
 
   const ranked = Array.from(counts.entries())
@@ -520,20 +480,17 @@ const generateTrends = async (locationInput: string, region: RegionConfig): Prom
     .slice(0, 10);
 
   const maxScore = ranked[0]?.[1] || 1;
-  return ranked.map(([keyword, score], index) => {
-    const reason = trendReason(keyword, locationLabel);
-    return {
-      topic_ja: keyword,
-      topic_en: keyword,
-      keyword_ja: keyword,
-      keyword_en: keyword,
-      description_ja: reason.ja,
-      description_en: reason.en,
-      category: '',
-      popularity: Math.max(60, Math.min(99, Math.round(65 + (score / maxScore) * 28 - index))),
-      source_url: `https://www.google.com/search?q=${encodeURIComponent(`${locationLabel} ${keyword}`)}`,
-    };
-  });
+  return ranked.map(([keyword, score], index) => ({
+    topic_ja: keyword,
+    topic_en: keyword,
+    keyword_ja: keyword,
+    keyword_en: keyword,
+    description_ja: trendReason(keyword, locationLabel),
+    description_en: trendReason(keyword, locationLabel),
+    category: '',
+    popularity: Math.max(60, Math.min(99, Math.round(68 + (score / maxScore) * 24 - index))),
+    source_url: `https://www.google.com/search?q=${encodeURIComponent(keyword)}`,
+  }));
 };
 
 export const onRequestOptions: PagesFunction<Env> = async () => new Response(null, { status: 204, headers: corsHeaders });
