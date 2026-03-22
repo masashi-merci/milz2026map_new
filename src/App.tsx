@@ -143,8 +143,10 @@ interface AIResults {
     reason_ja: string;
     reason_en: string;
     category: string;
+    bucket?: 'sightseeing' | 'food';
     lat: number;
     lng: number;
+    address?: string;
   }[];
   trends?: {
     topic_ja: string;
@@ -168,6 +170,8 @@ type RecommendationCard = {
   reason_ja: string;
   reason_en: string;
   category: string;
+  bucket?: 'sightseeing' | 'food';
+  address?: string;
   lat?: number;
   lng?: number;
 };
@@ -207,6 +211,8 @@ function normalizeRecommendationCards(results: AIResults | null, location: strin
       reason_ja: String(rec?.reason_ja || rec?.description_ja || rec?.description || rec?.reason || rec?.reason_en || '').trim(),
       reason_en: String(rec?.reason_en || rec?.description_en || rec?.description || rec?.reason || rec?.reason_ja || '').trim(),
       category: String(rec?.category || 'PLACE').trim() || 'PLACE',
+      bucket: rec?.bucket === 'food' ? 'food' : 'sightseeing',
+      address: String(rec?.address || '').trim(),
       lat: Number(rec?.lat),
       lng: Number(rec?.lng),
     }))
@@ -1504,6 +1510,8 @@ export default function App() {
   const favoritePlaces = places.filter(p => favorites.some(f => f.place_id === p.id));
 
   const recommendationCards = normalizeRecommendationCards(aiResults, buildScopedLocationString(activeRegion, locationFilter) || `${activeRegion.country} ${activeRegion.prefecture} ${activeRegion.municipality}`);
+  const sightseeingRecommendations = recommendationCards.filter((rec) => rec.bucket !== 'food').slice(0, 5);
+  const foodRecommendations = recommendationCards.filter((rec) => rec.bucket === 'food').slice(0, 5);
   const selectedPlaceIsFavorite = selectedPlace ? favorites.some((favorite) => favorite.place_id === selectedPlace.id) : false;
   const selectedPlaceScopedLocation = selectedPlace
     ? [selectedPlace.address, selectedPlace.municipality, selectedPlace.prefecture, selectedPlace.country].filter(Boolean).join(', ')
@@ -2262,67 +2270,68 @@ export default function App() {
                     )}
 
                     {aiMode === 'recommend' && aiResults && recommendationCards.length > 0 && (
-                      <section className="space-y-6">
+                      <section className="space-y-8">
                         <div className="flex items-center justify-between">
                           <h3 className="font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">{t.recommendedSpots}</h3>
                           <span className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">{REGION_PRESETS[selectedRegionKey].name}</span>
                         </div>
 
-                        {recommendationCards[0] && (
-                          <div className="group relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#191c1d,#2f3335)] p-8 text-white shadow-[0_24px_60px_rgba(25,28,29,0.18)]">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.12),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,255,255,0.08),transparent_26%)]" />
-                            <div className="relative z-10 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-                              <div className="max-w-2xl">
-                                <span className="inline-flex rounded-full bg-stone-900 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white">MILZ Top Match</span>
-                                <h4 className="mt-4 font-['Plus_Jakarta_Sans'] text-4xl font-extrabold tracking-[-0.04em]">
-                                  {uiLanguage === 'ja' ? (recommendationCards[0].name_ja || recommendationCards[0].name_en) : (recommendationCards[0].name_en || recommendationCards[0].name_ja)}
-                                </h4>
-                                <div className="mt-4 max-w-xl rounded-[1.5rem] border border-white/15 bg-white/10 p-4 backdrop-blur-xl">
-                                  <div className="flex gap-3">
-                                    <Sparkles className="mt-0.5 h-5 w-5 text-stone-200" />
-                                    <p className="text-sm leading-7 text-white/88">
-                                      {uiLanguage === 'ja' ? (recommendationCards[0].reason_ja || recommendationCards[0].reason_en) : (recommendationCards[0].reason_en || recommendationCards[0].reason_ja)}
-                                    </p>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-['Plus_Jakarta_Sans'] text-xl font-extrabold tracking-[-0.03em] text-[#191c1d]">観光地</h4>
+                            <span className="text-xs text-[#7c7f82]">1〜5</span>
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {sightseeingRecommendations.map((rec, i) => (
+                              <div key={`sightseeing-${i}`} className="glass-panel rounded-[1.75rem] border border-white/70 bg-white/92 p-6 shadow-[0_16px_34px_rgba(25,28,29,0.08)]">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Sightseeing #{i + 1}</p>
+                                    <h4 className="mt-2 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">{uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja)}</h4>
                                   </div>
+                                  <span className="rounded-full bg-[#f3f4f5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5f6368]">{rec.category}</span>
                                 </div>
-                              </div>
-                              <div className="glass-panel rounded-[1.5rem] border border-white/16 bg-white/10 px-5 py-4 text-white/86">
-                                <p className="text-[10px] font-black uppercase tracking-[0.26em] text-white/58">Category</p>
-                                <p className="mt-2 text-sm font-semibold">{recommendationCards[0].category}</p>
-                                <div className="mt-4 flex gap-2">
-                                  <button onClick={() => moveToMapLocation(recommendationCards[0].lat, recommendationCards[0].lng, { title: uiLanguage === 'ja' ? (recommendationCards[0].name_ja || recommendationCards[0].name_en) : (recommendationCards[0].name_en || recommendationCards[0].name_ja), description: uiLanguage === 'ja' ? (recommendationCards[0].reason_ja || recommendationCards[0].reason_en) : (recommendationCards[0].reason_en || recommendationCards[0].reason_ja), category: recommendationCards[0].category })} className="rounded-full border border-white/20 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white">View on map</button>
-                                  <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(recommendationCards[0]))} className="rounded-full border border-white/20 px-4 py-2 text-xs font-black uppercase tracking-[0.18em] text-white inline-flex items-center gap-2">
-                                    <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(recommendationCards[0]).id) ? 'fill-red-500 text-red-500' : 'text-white')} />
+                                <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja)}</p>
+                                {rec.address && <p className="mt-2 text-xs text-[#7c7f82]">{rec.address}</p>}
+                                <div className="mt-5 flex flex-wrap gap-2">
+                                  <button onClick={() => moveToMapLocation(rec.lat, rec.lng, { title: uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja), description: uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja), category: rec.category })} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
+                                  <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(rec))} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 inline-flex items-center gap-2">
+                                    <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(rec).id) ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
                                     Save
                                   </button>
                                 </div>
                               </div>
-                            </div>
+                            ))}
                           </div>
-                        )}
+                        </div>
 
-                        <div className="grid gap-4 md:grid-cols-2">
-                          {recommendationCards.slice(1).map((rec, i) => (
-                            <div key={i} className="glass-panel rounded-[1.75rem] border border-white/70 bg-white/92 p-6 shadow-[0_16px_34px_rgba(25,28,29,0.08)]">
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Recommendation</p>
-                                  <h4 className="mt-2 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">
-                                    {uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja)}
-                                  </h4>
+                        <div className="space-y-4">
+                          <div className="flex items-center gap-3">
+                            <h4 className="font-['Plus_Jakarta_Sans'] text-xl font-extrabold tracking-[-0.03em] text-[#191c1d]">飲食店</h4>
+                            <span className="text-xs text-[#7c7f82]">1〜5</span>
+                          </div>
+                          <div className="grid gap-4 md:grid-cols-2">
+                            {foodRecommendations.map((rec, i) => (
+                              <div key={`food-${i}`} className="glass-panel rounded-[1.75rem] border border-white/70 bg-white/92 p-6 shadow-[0_16px_34px_rgba(25,28,29,0.08)]">
+                                <div className="flex items-start justify-between gap-4">
+                                  <div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Food #{i + 1}</p>
+                                    <h4 className="mt-2 font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">{uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja)}</h4>
+                                  </div>
+                                  <span className="rounded-full bg-[#f3f4f5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5f6368]">{rec.category}</span>
                                 </div>
-                                <span className="rounded-full bg-[#f3f4f5] px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#5f6368]">{rec.category}</span>
+                                <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja)}</p>
+                                {rec.address && <p className="mt-2 text-xs text-[#7c7f82]">{rec.address}</p>}
+                                <div className="mt-5 flex flex-wrap gap-2">
+                                  <button onClick={() => moveToMapLocation(rec.lat, rec.lng, { title: uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja), description: uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja), category: rec.category })} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
+                                  <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(rec))} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 inline-flex items-center gap-2">
+                                    <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(rec).id) ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
+                                    Save
+                                  </button>
+                                </div>
                               </div>
-                              <p className="mt-4 text-sm leading-7 text-[#5f6368]">{uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja)}</p>
-                              <div className="mt-5 flex flex-wrap gap-2">
-                                <button onClick={() => moveToMapLocation(rec.lat, rec.lng, { title: uiLanguage === 'ja' ? (rec.name_ja || rec.name_en) : (rec.name_en || rec.name_ja), description: uiLanguage === 'ja' ? (rec.reason_ja || rec.reason_en) : (rec.reason_en || rec.reason_ja), category: rec.category })} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900">View on map</button>
-                                <button onClick={() => toggleAiFavorite(makeRecommendationFavorite(rec))} className="rounded-full border border-stone-200 px-4 py-2 text-xs font-black uppercase tracking-[0.16em] text-stone-900 inline-flex items-center gap-2">
-                                  <Heart className={cn('h-3.5 w-3.5', isAiFavoriteSaved(makeRecommendationFavorite(rec).id) ? 'fill-red-500 text-red-500' : 'text-stone-500')} />
-                                  Save
-                                </button>
-                              </div>
-                            </div>
-                          ))}
+                            ))}
+                          </div>
                         </div>
                       </section>
                     )}
