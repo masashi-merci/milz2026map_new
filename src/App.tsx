@@ -64,7 +64,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const AI_CACHE_PREFIX = 'milz_ai_cache_v21';
+const AI_CACHE_PREFIX = 'milz_ai_cache_v22';
 const GEO_CACHE_PREFIX = 'milz_geo_cache_v1';
 
 function normalizeCacheText(value: string) {
