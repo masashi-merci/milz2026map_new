@@ -64,7 +64,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const AI_CACHE_PREFIX = 'milz_ai_cache_v7';
+const AI_CACHE_PREFIX = 'milz_ai_cache_v10';
 const GEO_CACHE_PREFIX = 'milz_geo_cache_v1';
 
 function normalizeCacheText(value: string) {
@@ -2375,7 +2375,7 @@ export default function App() {
                       <section className="space-y-5">
                         <div className="flex items-center justify-between">
                           <h3 className="font-['Plus_Jakarta_Sans'] text-2xl font-extrabold tracking-[-0.03em] text-[#191c1d]">{t.localTrends}</h3>
-                          <span className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Google Trends based</span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.26em] text-[#7c7f82]">Google search based</span>
                         </div>
                         <div className="grid gap-4 md:grid-cols-2">
                           {aiResults.trends.map((trend, i) => (
