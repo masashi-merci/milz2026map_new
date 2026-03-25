@@ -17,7 +17,10 @@ type RecommendationItem = {
   lng: number;
   address?: string;
   source?: 'osm' | 'admin';
+  distanceKm?: number;
 };
+
+type TrendCategory = 'general' | 'food' | 'cafe' | 'restaurant' | 'sightseeing' | 'shopping' | 'event' | 'access';
 
 type TrendItem = {
   topic_ja: string;
@@ -61,7 +64,7 @@ type AdminPlace = {
   lng: number;
 };
 
-const CACHE_VERSION = 'v60';
+const CACHE_VERSION = 'v61';
 const RECOMMEND_TTL = 60 * 60 * 24 * 14;
 const TREND_TTL = 60 * 60 * 24;
 
@@ -178,11 +181,129 @@ const inferCategory = (el: OSMElement) => {
   if (tags.amenity === 'cafe' || tags.amenity === 'coffee_shop') return 'CAFE';
   if (['restaurant', 'fast_food', 'food_court', 'bar', 'pub', 'ice_cream'].includes(tags.amenity || '')) return 'RESTAURANT';
   if (tags.shop) return 'SHOPPING';
-  if (tags.leisure === 'park' || tags.leisure === 'garden') return 'PARK';
+  if (tags.leisure === 'park' || tags.leisure === 'garden' || tags.leisure === 'nature_reserve') return 'PARK';
   if (tags.railway === 'station' || tags.public_transport === 'station' || tags.amenity === 'bus_station') return 'TRANSIT';
-  if (['museum', 'gallery', 'attraction', 'viewpoint', 'artwork'].includes(tags.tourism || '')) return 'LANDMARK';
-  if (tags.historic || tags.amenity === 'place_of_worship') return 'LANDMARK';
+  if (tags.tourism === 'museum') return 'MUSEUM';
+  if (tags.tourism === 'gallery' || tags.amenity === 'arts_centre') return 'GALLERY';
+  if (tags.tourism === 'viewpoint') return 'VIEWPOINT';
+  if (tags.tourism === 'artwork') return 'ART';
+  if (['attraction', 'theme_park', 'zoo', 'aquarium', 'picnic_site'].includes(tags.tourism || '')) return 'LANDMARK';
+  if (tags.amenity === 'place_of_worship') return 'WORSHIP';
+  if (tags.historic) return 'HISTORIC';
   return 'PLACE';
+};
+
+const CHAIN_RESTAURANT_PATTERNS = [
+  /スターバックス|starbucks/i,
+  /ドトール|doutor/i,
+  /タリーズ|tully'?s/i,
+  /コメダ|komeda/i,
+  /マクドナルド|mcdonald'?s/i,
+  /モスバーガー|mos burger/i,
+  /バーガーキング|burger king/i,
+  /ケンタッキー|kfc/i,
+  /サイゼリヤ|saizeriya/i,
+  /ガスト|gusto/i,
+  /ジョナサン|jonathan'?s/i,
+  /デニーズ|denny'?s/i,
+  /松屋|matsuya/i,
+  /すき家|sukiya/i,
+  /吉野家|yoshinoya/i,
+  /丸亀製麺|marugame/i,
+  /はなまるうどん|hanamaru/i,
+  /王将|ohsho|gyoza no ohsho/i,
+  /鳥貴族|torikizoku/i,
+  /くら寿司|kura sushi/i,
+  /スシロー|sushiro/i,
+  /はま寿司|hama sushi/i,
+  /subway|サブウェイ/i,
+  /blue bottle/i,
+  /pronto|プロント/i,
+];
+
+const WORSHIP_PATTERNS = /神社|寺|教会|寺院|大聖堂|shrine|temple|church|cathedral|mosque|synagogue/i;
+
+const isChainRestaurant = (name: string) => CHAIN_RESTAURANT_PATTERNS.some((pattern) => pattern.test(name));
+const isWorshipPlace = (name: string, category: string) => category === 'WORSHIP' || WORSHIP_PATTERNS.test(name);
+
+const recommendationRootName = (item: RecommendationItem) =>
+  normalize(item.name_en || item.name_ja)
+    .replace(/\b(honten|branch|store)\b/giu, '')
+    .replace(/(本店|支店|駅前店|店)\s*$/u, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const recommendationScore = (item: RecommendationItem) => {
+  const distance = Number.isFinite(item.distanceKm) ? Number(item.distanceKm) : 99;
+  let score = Math.max(0, 100 - Math.min(distance * 12, 48));
+  if (item.source === 'admin') score += 18;
+  if (item.address) score += 4;
+
+  if (item.bucket === 'food') {
+    if (item.category === 'RESTAURANT') score += 18;
+    if (item.category === 'CAFE') score += 14;
+    if (isChainRestaurant(item.name_ja || item.name_en)) score -= 42;
+    if (/本店|honten/i.test(item.name_ja || item.name_en)) score += 6;
+  } else {
+    if (item.category === 'VIEWPOINT') score += 22;
+    else if (item.category === 'MUSEUM' || item.category === 'GALLERY') score += 18;
+    else if (item.category === 'PARK') score += 16;
+    else if (item.category === 'LANDMARK') score += 12;
+    else if (item.category === 'HISTORIC') score += 6;
+    if (isWorshipPlace(item.name_ja || item.name_en, item.category)) score -= 26;
+  }
+
+  return score;
+};
+
+const selectRecommendationMix = (items: RecommendationItem[], bucket: Bucket, limit: number) => {
+  const sorted = [...items].sort((a, b) => {
+    const scoreDiff = recommendationScore(b) - recommendationScore(a);
+    if (scoreDiff !== 0) return scoreDiff;
+    return (a.distanceKm || 99) - (b.distanceKm || 99);
+  });
+
+  const picked: RecommendationItem[] = [];
+  const seenRoots = new Set<string>();
+  const categoryCounts = new Map<string, number>();
+  let chainCount = 0;
+  let worshipCount = 0;
+
+  for (const item of sorted) {
+    if (picked.length >= limit) break;
+    const root = recommendationRootName(item);
+    if (root && seenRoots.has(root)) continue;
+
+    const sameCategory = categoryCounts.get(item.category) || 0;
+    const chain = isChainRestaurant(item.name_ja || item.name_en);
+    const worship = isWorshipPlace(item.name_ja || item.name_en, item.category);
+
+    if (bucket === 'food') {
+      if (chain && chainCount >= 1) continue;
+      if (sameCategory >= 3) continue;
+    } else {
+      if (worship && worshipCount >= 1) continue;
+      if (sameCategory >= 2) continue;
+    }
+
+    picked.push(item);
+    if (root) seenRoots.add(root);
+    categoryCounts.set(item.category, sameCategory + 1);
+    if (chain) chainCount += 1;
+    if (worship) worshipCount += 1;
+  }
+
+  if (picked.length < limit) {
+    for (const item of sorted) {
+      if (picked.length >= limit) break;
+      const key = `${normalize(item.name_en || item.name_ja)}:${Math.round(item.lat * 1000)}:${Math.round(item.lng * 1000)}`;
+      const already = picked.some((current) => `${normalize(current.name_en || current.name_ja)}:${Math.round(current.lat * 1000)}:${Math.round(current.lng * 1000)}` === key);
+      if (already) continue;
+      picked.push(item);
+    }
+  }
+
+  return picked.slice(0, limit);
 };
 
 const elementName = (el: OSMElement) => safeText(el.tags?.['name:ja'] || el.tags?.name || el.tags?.['name:en'] || el.tags?.official_name);
@@ -236,6 +357,7 @@ const fetchAdminPlacesNear = async (location: GeocodedLocation, env: Env): Promi
           lng: Number(row.lng),
           address: safeText(row.address || row.municipality || row.prefecture || row.country),
           source: 'admin' as const,
+          distanceKm,
         };
       });
   } catch {
@@ -252,12 +374,12 @@ const overpassClausesForBucket = (bucket: Bucket) => {
     ];
   }
   return [
-    'node["tourism"~"attraction|museum|gallery|viewpoint|artwork"]',
-    'way["tourism"~"attraction|museum|gallery|viewpoint|artwork"]',
-    'relation["tourism"~"attraction|museum|gallery|viewpoint|artwork"]',
+    'node["tourism"~"attraction|museum|gallery|viewpoint|artwork|theme_park|zoo|aquarium|picnic_site"]',
+    'way["tourism"~"attraction|museum|gallery|viewpoint|artwork|theme_park|zoo|aquarium|picnic_site"]',
+    'relation["tourism"~"attraction|museum|gallery|viewpoint|artwork|theme_park|zoo|aquarium|picnic_site"]',
     'node["historic"]','way["historic"]','relation["historic"]',
-    'node["leisure"~"park|garden"]','way["leisure"~"park|garden"]','relation["leisure"~"park|garden"]',
-    'node["amenity"="place_of_worship"]','way["amenity"="place_of_worship"]','relation["amenity"="place_of_worship"]',
+    'node["leisure"~"park|garden|nature_reserve"]','way["leisure"~"park|garden|nature_reserve"]','relation["leisure"~"park|garden|nature_reserve"]',
+    'node["amenity"~"place_of_worship|arts_centre"]','way["amenity"~"place_of_worship|arts_centre"]','relation["amenity"~"place_of_worship|arts_centre"]',
   ];
 };
 
@@ -296,6 +418,7 @@ const fetchOverpassRecommendations = async (location: GeocodedLocation, bucket: 
             lng,
             address: elementAddress(el),
             source: 'osm' as const,
+            distanceKm,
           },
         };
       })
@@ -315,7 +438,7 @@ const fetchOverpassRecommendations = async (location: GeocodedLocation, bucket: 
   }
 };
 
-const dedupeRecommendations = (items: RecommendationItem[], limit: number) => {
+const dedupeRecommendations = (items: RecommendationItem[]) => {
   const seen = new Set<string>();
   const out: RecommendationItem[] = [];
   for (const item of items) {
@@ -323,7 +446,6 @@ const dedupeRecommendations = (items: RecommendationItem[], limit: number) => {
     if (seen.has(key)) continue;
     seen.add(key);
     out.push(item);
-    if (out.length >= limit) break;
   }
   return out;
 };
@@ -335,27 +457,86 @@ const generateRecommendations = async (locationInput: string, env: Env): Promise
     fetchOverpassRecommendations(geocoded, 'sightseeing'),
     fetchOverpassRecommendations(geocoded, 'food'),
   ]);
-  const sightseeingTop = dedupeRecommendations([...admin.filter((x) => x.bucket === 'sightseeing'), ...sightseeing], 5);
-  const foodTop = dedupeRecommendations([...admin.filter((x) => x.bucket === 'food'), ...food], 5);
-  return { recommendations: [...sightseeingTop, ...foodTop], geocoded };
+  const sightseeingPool = dedupeRecommendations([...admin.filter((x) => x.bucket === 'sightseeing'), ...sightseeing]);
+  const foodPool = dedupeRecommendations([...admin.filter((x) => x.bucket === 'food'), ...food]);
+  const sightseeingTop = selectRecommendationMix(sightseeingPool, 'sightseeing', 5);
+  const foodTop = selectRecommendationMix(foodPool, 'food', 5);
+  return {
+    recommendations: [...sightseeingTop, ...foodTop].map(({ distanceKm, ...item }) => item),
+    geocoded,
+  };
 };
 
-const sanitizeTrendPhrase = (phrase: string, primaryLabel: string) => {
+const normalizeLocationTokens = (value: string) =>
+  safeText(value)
+    .split(/[\s,、　・/()（）|-]+/g)
+    .map((part) => part.trim())
+    .filter((part) => part.length >= 2);
+
+const canonicalizeTrendCategory = (value: string): TrendCategory => {
+  const normalized = normalize(value);
+  if (contains(normalized, 'food', 'グルメ', 'ランチ', 'ディナー')) return 'food';
+  if (contains(normalized, 'cafe', 'カフェ', 'coffee')) return 'cafe';
+  if (contains(normalized, 'restaurant', 'レストラン', '居酒屋')) return 'restaurant';
+  if (contains(normalized, 'shopping', '買い物', 'mall', 'shop')) return 'shopping';
+  if (contains(normalized, 'event', 'イベント', '祭', 'ライブ', '展示')) return 'event';
+  if (contains(normalized, 'access', 'アクセス', '交通', '駐車場', '駅')) return 'access';
+  if (contains(normalized, 'sightseeing', '観光', '見どころ', '公園', '散策')) return 'sightseeing';
+  return 'general';
+};
+
+const buildTrendQueries = (locationInput: string, geocoded: GeocodedLocation, categoryValue: string) => {
+  const category = canonicalizeTrendCategory(categoryValue);
+  const baseVariants = Array.from(new Set([
+    geocoded.primaryLabel,
+    safeText(locationInput),
+    ...normalizeLocationTokens(locationInput),
+    ...normalizeLocationTokens(geocoded.display),
+  ].map((value) => safeText(value)).filter((value) => value.length >= 2))).slice(0, 3);
+
+  const categorySeeds: Record<TrendCategory, string[]> = {
+    general: ['人気', '観光', 'イベント', 'ランチ', 'カフェ', 'アクセス', 'ホテル'],
+    food: ['ランチ', 'ディナー', 'グルメ', '食べ歩き', '居酒屋'],
+    cafe: ['カフェ', 'コーヒー', 'スイーツ', 'モーニング'],
+    restaurant: ['レストラン', 'ランチ', 'ディナー', '人気店'],
+    sightseeing: ['観光', '見どころ', 'イベント', '公園', '美術館'],
+    shopping: ['ショッピング', '買い物', '商店街', 'モール'],
+    event: ['イベント', '祭り', 'ライブ', '展示', '期間限定'],
+    access: ['アクセス', '駐車場', '駅', '行き方', 'バス'],
+  };
+
+  const seeds = categorySeeds[category];
+  const queries = new Set<string>();
+  for (const base of baseVariants) {
+    queries.add(base);
+    for (const seed of seeds) {
+      queries.add(`${base} ${seed}`.trim());
+    }
+  }
+  return Array.from(queries).slice(0, 15);
+};
+
+const stripLeadingLocation = (phrase: string, variants: string[]) => {
+  let output = phrase;
+  for (const variant of variants) {
+    const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    output = output.replace(new RegExp(`^${escaped}[\\s　-]*`, 'iu'), '').trim();
+  }
+  return output;
+};
+
+const sanitizeTrendPhrase = (phrase: string, locationVariants: string[]) => {
   const normalizedPhrase = safeText(phrase).replace(/\s+/g, ' ').trim();
   if (!normalizedPhrase) return '';
   if (/�|Ã|â/.test(normalizedPhrase)) return '';
   if (/^[\W_]+$/u.test(normalizedPhrase)) return '';
-  let display = normalizedPhrase;
-  const variants = [primaryLabel, primaryLabel.replace(/市$/u, ''), primaryLabel.replace(/区$/u, ''), primaryLabel.replace(/駅$/u, '')].filter(Boolean);
-  for (const variant of variants) {
-    const escaped = variant.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    display = display.replace(new RegExp(`^${escaped}[\s　-]*`, 'iu'), '').trim();
-  }
-  if (!display || display.length < 2) return '';
-  if (['人気', '観光', 'おすすめ', 'ランチ', 'カフェ', '天気', 'イベント', 'ホテル', '居酒屋', '桜'].includes(display) && normalizedPhrase === display) {
-    return '';
-  }
-  return display;
+  if (normalizedPhrase.length < 2) return '';
+
+  const stripped = stripLeadingLocation(normalizedPhrase, locationVariants.filter(Boolean));
+  const bareDeny = ['人気', '観光', 'おすすめ', 'ランチ', 'カフェ', '天気', 'イベント', 'ホテル', '居酒屋', '桜', 'アクセス', '駐車場'];
+  if (bareDeny.includes(normalizedPhrase)) return '';
+  if (bareDeny.includes(stripped) && normalize(stripped) === normalize(normalizedPhrase)) return '';
+  return normalizedPhrase;
 };
 
 const fetchSuggestTerms = async (query: string, countryCode: string): Promise<string[]> => {
@@ -395,40 +576,51 @@ const trendReason = (query: string, locationLabel: string) => {
   return `${locationLabel} について「何があるか」「今なぜ注目されているか」を確認する検索として、この語が使われていると考えられます。現地へ行く前の下調べや比較検討の需要が背景です。`;
 };
 
-const generateTrends = async (locationInput: string): Promise<{ trends: TrendItem[]; geocoded: GeocodedLocation }> => {
+const generateTrends = async (locationInput: string, categoryValue = 'general'): Promise<{ trends: TrendItem[]; geocoded: GeocodedLocation }> => {
   const geocoded = await geocodeLocation(locationInput);
-  const queries = Array.from(new Set([
+  const queries = buildTrendQueries(locationInput, geocoded, categoryValue);
+  const locationVariants = Array.from(new Set([
     geocoded.primaryLabel,
-    `${safeText(locationInput)}`,
-    `${safeText(locationInput)} `,
-  ].map((q) => safeText(q)).filter(Boolean)));
+    geocoded.primaryLabel.replace(/市$/u, ''),
+    geocoded.primaryLabel.replace(/区$/u, ''),
+    geocoded.primaryLabel.replace(/駅$/u, ''),
+    ...normalizeLocationTokens(locationInput),
+  ].filter(Boolean)));
 
-  const counts = new Map<string, { count: number; original: string }>();
-  for (const query of queries) {
-    const suggestions = await fetchSuggestTerms(query, geocoded.countryCode);
+  const counts = new Map<string, { count: number; original: string; matchedBy: Set<string> }>();
+  const results = await Promise.allSettled(queries.map((query) => fetchSuggestTerms(query, geocoded.countryCode)));
+
+  for (let index = 0; index < results.length; index += 1) {
+    const query = queries[index];
+    const settled = results[index];
+    const suggestions = settled.status === 'fulfilled' ? settled.value : [];
     for (const suggestion of suggestions) {
-      const display = sanitizeTrendPhrase(suggestion, geocoded.primaryLabel);
+      const display = sanitizeTrendPhrase(suggestion, locationVariants);
       if (!display) continue;
       const key = normalize(display);
-      const current = counts.get(key);
-      counts.set(key, { count: (current?.count || 0) + 1, original: display });
+      const current = counts.get(key) || { count: 0, original: display, matchedBy: new Set<string>() };
+      current.original = current.original.length <= display.length ? current.original : display;
+      current.count += 1;
+      current.matchedBy.add(query);
+      counts.set(key, current);
     }
   }
 
   const ranked = Array.from(counts.values())
-    .sort((a, b) => b.count - a.count || a.original.length - b.original.length)
+    .filter((entry) => entry.matchedBy.size >= 1)
+    .sort((a, b) => b.count - a.count || b.matchedBy.size - a.matchedBy.size || a.original.length - b.original.length)
     .slice(0, 10);
 
   const maxScore = ranked[0]?.count || 1;
   const trends = ranked.map((entry, index) => {
-    const fullQuery = `${geocoded.primaryLabel} ${entry.original}`.trim();
+    const fullQuery = entry.original.trim();
     return {
       topic_ja: fullQuery,
       topic_en: fullQuery,
       description_ja: trendReason(fullQuery, geocoded.primaryLabel),
       description_en: trendReason(fullQuery, geocoded.primaryLabel),
-      category: '',
-      popularity: Math.max(62, Math.min(99, Math.round(68 + (entry.count / maxScore) * 24 - index))),
+      category: canonicalizeTrendCategory(categoryValue) === 'general' ? '' : canonicalizeTrendCategory(categoryValue).toUpperCase(),
+      popularity: Math.max(62, Math.min(99, Math.round(68 + (entry.count / maxScore) * 24 + entry.matchedBy.size * 2 - index))),
       source_url: `https://www.google.com/search?q=${encodeURIComponent(fullQuery)}`,
     } satisfies TrendItem;
   });
@@ -443,10 +635,11 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
     const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
     const mode: Mode = body?.mode === 'trend' ? 'trend' : 'recommend';
     const location = safeText(body?.location, '日本 東京都 渋谷').slice(0, 180);
-    const cache = caches.default;
+    const category = safeText(body?.category, 'general').slice(0, 80);
+    const cache = (caches as CacheStorage & { default: Cache }).default;
 
     const geocodedForKey = await geocodeLocation(location);
-    const cacheKey = await buildCacheKey(mode, geocodedForKey.locationKey);
+    const cacheKey = await buildCacheKey(mode, `${geocodedForKey.locationKey}|${mode === 'trend' ? normalize(category) : 'all'}`);
     const cacheUrl = `https://edge-cache.local/milz-ai-${cacheKey}`;
     const cached = await cache.match(cacheUrl);
     if (cached) {
@@ -460,8 +653,8 @@ export const onRequestPost: PagesFunction<Env> = async ({ request, env }) => {
       return response;
     }
 
-    const { trends, geocoded } = await generateTrends(location);
-    const response = json({ mode, location, geocoded: { lat: geocoded.lat, lng: geocoded.lng, display: geocoded.display }, trends, generatedAt: new Date().toISOString() }, 200, { 'Cache-Control': `public, max-age=${TREND_TTL}`, 'X-AI-Cache': 'MISS' });
+    const { trends, geocoded } = await generateTrends(location, category);
+    const response = json({ mode, location, category, geocoded: { lat: geocoded.lat, lng: geocoded.lng, display: geocoded.display }, trends, generatedAt: new Date().toISOString() }, 200, { 'Cache-Control': `public, max-age=${TREND_TTL}`, 'X-AI-Cache': 'MISS' });
     await cache.put(cacheUrl, response.clone());
     return response;
   } catch (error) {
